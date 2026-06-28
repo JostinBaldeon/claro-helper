@@ -11,7 +11,7 @@ export type CaseType =
 
 export type Priority = "Crítica" | "Alta" | "Media/Alta" | "Media" | "Baja";
 
-export type Franja = "AM1" | "AM2" | "PM1" | "PM2" | "";
+export type Franja = "AM0" | "AM1" | "AM2" | "PM1" | "PM2" | "";
 
 export interface ParsedTicket {
   sot: string;
