@@ -8,11 +8,13 @@ import {
   Eraser,
   FileText,
   History,
+  MessageCircle,
   RefreshCcw,
   Save,
   Search,
   Sparkles,
   Trash2,
+  User,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,23 +40,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import {
   CASE_LABEL,
   EXAMPLE_TICKET,
-  emptySga,
-  emptyToa,
-  generateResponse,
   parseTicket,
   type CaseType,
-  type Destino,
   type Franja,
   type ParsedTicket,
   type Priority,
-  type SgaChecks,
-  type Tono,
-  type ToaChecks,
 } from "@/lib/ticket-parser";
+import {
+  ADP_OPTIONS,
+  FRANJAS_INFO,
+  SGA_TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  WSP_TEMPLATES,
+  renderTemplate,
+  renderWsp,
+  type SgaTemplate,
+  type TemplateCategory,
+  type WspTemplate,
+} from "@/lib/templates";
 import { exportCsv, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
@@ -70,47 +85,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Dashboard,
 });
-
-const TOA_LABELS: { key: keyof ToaChecks; label: string }[] = [
-  { key: "estadoAgenda", label: "Estado en agenda" },
-  { key: "estadoCancelado", label: "Cancelado" },
-  { key: "estadoReagendado", label: "Reagendado" },
-  { key: "estadoPendiente", label: "Pendiente" },
-  { key: "estadoEjecucion", label: "En ejecución" },
-  { key: "clienteConfProgramacion", label: "Cliente confirmado programación" },
-  { key: "clienteConfSeguimiento", label: "Cliente confirmado seguimiento" },
-  { key: "clienteNoContactado", label: "Cliente no contactado" },
-  { key: "clienteRecuperado", label: "Cliente recuperado" },
-  { key: "alertaReagendamiento", label: "Alerta de reagendamiento" },
-  { key: "franjaVigente", label: "Franja vigente" },
-  { key: "franjaVencida", label: "Franja vencida" },
-  { key: "tieneTecnico", label: "Tiene técnico/cuadrilla" },
-  { key: "sinTecnico", label: "Sin técnico/cuadrilla" },
-  { key: "requiereEscalamiento", label: "Requiere escalamiento" },
-  { key: "observacionRegistrada", label: "Obs. de seguimiento" },
-  { key: "fueraDeTOA", label: "Fuera de TOA" },
-  { key: "adelantoContratista", label: "Adelanto contratista" },
-  { key: "retornoCampo", label: "Retorno a campo" },
-  { key: "derivadoBuzon", label: "Derivado vía buzón" },
-];
-
-const SGA_LABELS: { key: keyof SgaChecks; label: string }[] = [
-  { key: "enAgenda", label: "En agenda" },
-  { key: "reagendado", label: "Reagendado" },
-  { key: "cancelado", label: "Cancelado" },
-  { key: "pendiente", label: "Pendiente" },
-  { key: "enEjecucion", label: "En ejecución" },
-  { key: "tieneCuadrilla", label: "Tiene cuadrilla" },
-  { key: "sinCuadrilla", label: "No tiene cuadrilla" },
-  { key: "coincideFecha", label: "Coincide fecha/franja" },
-  { key: "noCoincideFecha", label: "No coincide fecha/franja" },
-  { key: "historialReprogramacion", label: "Historial de reprogramación" },
-  { key: "observacionContacto", label: "Observación de contacto" },
-  { key: "anotacionOperativa", label: "Anotación operativa" },
-  { key: "serviciosAInstalar", label: "Servicios a instalar" },
-  { key: "fechaCompromisoVencida", label: "Fecha compromiso vencida" },
-  { key: "fechaCompromisoVigente", label: "Fecha compromiso vigente" },
-];
 
 const PRIORITY_STYLE: Record<Priority, string> = {
   "Crítica": "bg-critical text-critical-foreground",
@@ -128,6 +102,8 @@ const CASE_DOT: Record<CaseType, string> = {
   RESCATE_COMERCIAL: "bg-rescue",
   GENERAL: "bg-muted-foreground",
 };
+
+const ADP_KEY = "helpdesk_claro_adp_v1";
 
 function emptyTicket(): ParsedTicket {
   return {
@@ -158,16 +134,56 @@ async function copyText(text: string, label: string) {
   }
 }
 
+function diaFranja(t: ParsedTicket): string {
+  // Si existe fecha, intenta dd/mm + franja. Si no, devuelve franja sola.
+  const fechaCorta = (() => {
+    const m = (t.fechaInstalacion || "").match(/(\d{1,2})[\/\-](\d{1,2})/);
+    return m ? `${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}` : "";
+  })();
+  return [fechaCorta, t.franja].filter(Boolean).join(" ");
+}
+
 function Dashboard() {
+  // ADP activo
+  const [adp, setAdp] = useState<string>("Jhostin Baldeon");
+  const [adpAskOpen, setAdpAskOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(ADP_KEY);
+    if (saved) {
+      setAdp(saved);
+    } else {
+      setAdpAskOpen(true);
+    }
+  }, []);
+
+  const confirmAdp = (name: string) => {
+    setAdp(name);
+    if (typeof window !== "undefined") window.localStorage.setItem(ADP_KEY, name);
+    setAdpAskOpen(false);
+    toast.success(`ADP activo: ${name}`);
+  };
+
+  // Ticket
   const [raw, setRaw] = useState("");
   const [ticket, setTicket] = useState<ParsedTicket>(emptyTicket());
   const [analyzed, setAnalyzed] = useState(false);
-  const [toa, setToa] = useState<ToaChecks>(emptyToa());
-  const [sga, setSga] = useState<SgaChecks>(emptySga());
-  const [tono, setTono] = useState<Tono>("Formal");
-  const [destino, setDestino] = useState<Destino>("Asesor comercial");
+
+  // Estado de SOT / plantilla seleccionada
+  const [tplCategory, setTplCategory] = useState<TemplateCategory>(
+    "Confirmación",
+  );
+  const [tplId, setTplId] = useState<string>(SGA_TEMPLATES[0].id);
+  const [submotivo, setSubmotivo] = useState<string>("");
   const [respuesta, setRespuesta] = useState("");
   const [respManual, setRespManual] = useState(false);
+
+  // WhatsApp panel
+  const [wspId, setWspId] = useState<string>(WSP_TEMPLATES[0].id);
+  const [wspExtra, setWspExtra] = useState<string>("");
+  const [wsp, setWsp] = useState<string>("");
+  const [wspManual, setWspManual] = useState(false);
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [query, setQuery] = useState("");
@@ -178,12 +194,46 @@ function Dashboard() {
     setHistory(loadHistory());
   }, []);
 
-  // Regenerar respuesta automática cuando cambian checks/tono/destino/ticket (si no la editaron manualmente)
+  const currentTpl: SgaTemplate =
+    SGA_TEMPLATES.find((t) => t.id === tplId) ?? SGA_TEMPLATES[0];
+
+  const templatesInCategory = useMemo(
+    () => SGA_TEMPLATES.filter((t) => t.category === tplCategory),
+    [tplCategory],
+  );
+
+  // Si cambia la categoría, selecciona la primera plantilla de esa categoría
   useEffect(() => {
-    if (!analyzed) return;
+    if (!templatesInCategory.find((t) => t.id === tplId)) {
+      setTplId(templatesInCategory[0]?.id ?? "");
+      setSubmotivo("");
+    }
+  }, [tplCategory, templatesInCategory, tplId]);
+
+  // Regenerar respuesta cuando cambian plantilla / ticket / submotivo / adp
+  useEffect(() => {
     if (respManual) return;
-    setRespuesta(generateResponse({ ticket, toa, sga, tono, destino }));
-  }, [analyzed, respManual, ticket, toa, sga, tono, destino]);
+    if (!currentTpl) return;
+    setRespuesta(
+      renderTemplate(currentTpl, {
+        SOT: ticket.sot,
+        DIA_FRANJA: diaFranja(ticket),
+        CLIENTE: ticket.cliente,
+        NUMERO: ticket.telefono,
+        CONTRATA: ticket.contrata,
+        ADP: adp,
+        SUBMOTIVO: submotivo,
+      }),
+    );
+  }, [currentTpl, ticket, submotivo, adp, respManual]);
+
+  // WhatsApp render
+  const currentWsp: WspTemplate =
+    WSP_TEMPLATES.find((w) => w.id === wspId) ?? WSP_TEMPLATES[0];
+  useEffect(() => {
+    if (wspManual) return;
+    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra }));
+  }, [currentWsp, ticket.sot, wspExtra, wspManual]);
 
   const handleAnalyze = () => {
     if (!raw.trim()) {
@@ -194,25 +244,21 @@ function Dashboard() {
     setTicket(p);
     setAnalyzed(true);
     setRespManual(false);
-    setToa(emptyToa());
-    setSga(emptySga());
-    if (!p.sot) {
-      toast.warning("No se detectó SOT. Ingrésala manualmente.");
-    } else if (p.sotCandidates.length > 1) {
-      toast.message(`Se detectaron ${p.sotCandidates.length} SOTs. Verifica la correcta.`);
-    } else {
-      toast.success(`Caso detectado: ${CASE_LABEL[p.caso]}`);
-    }
+    setWspManual(false);
+    if (!p.sot) toast.warning("No se detectó SOT. Ingrésala manualmente.");
+    else toast.success(`Caso detectado: ${CASE_LABEL[p.caso]}`);
   };
 
   const handleClearTicket = () => {
     setRaw("");
     setTicket(emptyTicket());
     setAnalyzed(false);
-    setToa(emptyToa());
-    setSga(emptySga());
+    setSubmotivo("");
     setRespuesta("");
     setRespManual(false);
+    setWsp("");
+    setWspManual(false);
+    setWspExtra("");
   };
 
   const handleExample = () => {
@@ -239,7 +285,7 @@ function Dashboard() {
       sot: ticket.sot || "S/N",
       caso: ticket.caso,
       prioridad: ticket.prioridad,
-      estado: buildEstado(toa, sga),
+      estado: `${currentTpl.label}${submotivo ? ` · ${submotivo}` : ""}`,
       respuesta,
       cliente: ticket.cliente,
     };
@@ -270,7 +316,6 @@ function Dashboard() {
     URL.revokeObjectURL(url);
   };
 
-  // Métricas
   const metrics = useMemo(() => {
     const today = new Date().toDateString();
     const todays = history.filter((h) => new Date(h.fecha).toDateString() === today);
@@ -296,6 +341,8 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-surface">
+      <AdpDialog open={adpAskOpen} onConfirm={confirmAdp} current={adp} />
+
       <header className="border-b bg-background sticky top-0 z-30">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex items-center gap-3">
@@ -315,8 +362,17 @@ function Dashboard() {
             <Badge variant="outline" className="gap-1">
               <span className="h-2 w-2 rounded-full bg-success" /> Sin backend
             </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAdpAskOpen(true)}
+              title="Cambiar ADP activo"
+            >
+              <User className="mr-2 h-4 w-4" />
+              {adp}
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="mr-2 h-4 w-4" /> Exportar CSV
+              <Download className="mr-2 h-4 w-4" /> CSV
             </Button>
             <Button variant="outline" size="sm" onClick={handleClearAll}>
               <Trash2 className="mr-2 h-4 w-4" /> Limpiar datos
@@ -330,13 +386,11 @@ function Dashboard() {
           <AlertTriangle className="h-4 w-4 text-warn" />
           <AlertTitle className="text-sm">Aviso de privacidad</AlertTitle>
           <AlertDescription className="text-xs">
-            No pegues datos sensibles si no corresponde. Esta es una herramienta
-            local de apoyo operativo; no se envía información a servidores externos
+            Herramienta local de apoyo. No se envía información a servidores externos
             y el historial se guarda únicamente en este navegador.
           </AlertDescription>
         </Alert>
 
-        {/* Métricas */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <MetricCard label="Tickets hoy" value={metrics.hoy} />
           <MetricCard label="Incumplimientos" value={metrics.incumplimientos} tone="warn" />
@@ -403,6 +457,15 @@ function Dashboard() {
                   </div>
                 </div>
               )}
+
+              <div className="rounded-md border bg-surface-2 p-2 text-[11px] text-muted-foreground">
+                <p className="mb-1 font-semibold text-foreground">Franjas</p>
+                <ul className="space-y-0.5">
+                  {FRANJAS_INFO.map((f) => (
+                    <li key={f.value}>{f.label}</li>
+                  ))}
+                </ul>
+              </div>
             </CardContent>
           </Card>
 
@@ -491,10 +554,11 @@ function Dashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="NONE">No detectada</SelectItem>
-                          <SelectItem value="AM1">AM1 (08:00)</SelectItem>
-                          <SelectItem value="AM2">AM2 (11:00)</SelectItem>
-                          <SelectItem value="PM1">PM1 (14:00)</SelectItem>
-                          <SelectItem value="PM2">PM2 (16:00+)</SelectItem>
+                          {FRANJAS_INFO.map((f) => (
+                            <SelectItem key={f.value} value={f.value}>
+                              {f.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -520,14 +584,6 @@ function Dashboard() {
                         className="min-h-[60px] text-xs"
                       />
                     </div>
-                    <div className="col-span-2 space-y-1 md:col-span-3">
-                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Acción sugerida
-                      </Label>
-                      <p className="rounded-md border bg-surface-2 px-3 py-2 text-sm">
-                        {ticket.accionSugerida}
-                      </p>
-                    </div>
                   </div>
                 )}
                 {analyzed && !ticket.sot && (
@@ -539,147 +595,175 @@ function Dashboard() {
                   </Alert>
                 )}
               </CardContent>
-              {analyzed && (
-                <CardContent className="pt-0">
-                  <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-                    {(toa.estadoCancelado || sga.cancelado) && (
-                      <Badge className="bg-critical text-critical-foreground">
-                        ⚠ Orden cancelada
-                      </Badge>
-                    )}
-                    {toa.franjaVencida && (
-                      <Badge className="bg-warn text-warn-foreground">Franja vencida</Badge>
-                    )}
-                    {(toa.clienteConfProgramacion || toa.clienteConfSeguimiento) && (
-                      <Badge className="bg-success text-success-foreground">
-                        Cliente confirmado
-                      </Badge>
-                    )}
-                    {(toa.sinTecnico || sga.sinCuadrilla) && (
-                      <Badge className="bg-warn/80 text-warn-foreground">
-                        Sin técnico/cuadrilla
-                      </Badge>
-                    )}
-                    <div className="flex-1" />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => copyText(ticket.sot || "", "SOT")}
-                    >
-                      <ClipboardCopy className="mr-2 h-4 w-4" /> Copiar SOT
-                    </Button>
-                  </div>
-                </CardContent>
-              )}
             </Card>
 
-            {/* Validación */}
+            {/* Estado de SOT - plantilla seleccionable */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Validación TOA & SGA</CardTitle>
+                <CardTitle className="text-base">Estado de SOT · Plantilla SGA</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                  <ChecklistBlock
-                    title="TOA"
-                    accent="bg-info"
-                    items={TOA_LABELS}
-                    state={toa}
-                    onToggle={(k) =>
-                      setToa({ ...toa, [k]: !toa[k as keyof ToaChecks] })
-                    }
-                  />
-                  <ChecklistBlock
-                    title="SGA"
-                    accent="bg-rescue"
-                    items={SGA_LABELS}
-                    state={sga}
-                    onToggle={(k) =>
-                      setSga({ ...sga, [k]: !sga[k as keyof SgaChecks] })
-                    }
-                  />
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <div>
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Categoría
+                    </Label>
+                    <Select
+                      value={tplCategory}
+                      onValueChange={(v) => setTplCategory(v as TemplateCategory)}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TEMPLATE_CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Estado / Plantilla
+                    </Label>
+                    <Select
+                      value={tplId}
+                      onValueChange={(v) => {
+                        setTplId(v);
+                        setSubmotivo("");
+                        setRespManual(false);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templatesInCategory.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {currentTpl.submotivos && (
+                  <div>
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Sub-motivo
+                    </Label>
+                    <Select value={submotivo} onValueChange={(v) => { setSubmotivo(v); setRespManual(false); }}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Escoger una opción" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentTpl.submotivos.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <Textarea
+                  value={respuesta}
+                  onChange={(e) => { setRespuesta(e.target.value); setRespManual(true); }}
+                  className="min-h-[280px] font-mono text-xs"
+                  placeholder="La plantilla aparecerá aquí…"
+                />
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button onClick={() => copyText(respuesta, "Plantilla SGA")}>
+                    <ClipboardCopy className="mr-2 h-4 w-4" /> Copiar plantilla
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRespManual(false);
+                      setRespuesta(
+                        renderTemplate(currentTpl, {
+                          SOT: ticket.sot,
+                          DIA_FRANJA: diaFranja(ticket),
+                          CLIENTE: ticket.cliente,
+                          NUMERO: ticket.telefono,
+                          CONTRATA: ticket.contrata,
+                          ADP: adp,
+                          SUBMOTIVO: submotivo,
+                        }),
+                      );
+                      toast.success("Plantilla regenerada");
+                    }}
+                  >
+                    <RefreshCcw className="mr-2 h-4 w-4" /> Regenerar
+                  </Button>
+                  <div className="flex-1" />
+                  <Button variant="secondary" onClick={handleSaveHistory}>
+                    <Save className="mr-2 h-4 w-4" /> Guardar
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Panel derecho */}
+          {/* Panel derecho — Respuesta WhatsApp */}
           <Card className="lg:col-span-3">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Respuesta sugerida</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageCircle className="h-4 w-4 text-success" /> Respuesta WhatsApp
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Tono
-                  </Label>
-                  <Select value={tono} onValueChange={(v) => setTono(v as Tono)}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Formal">Formal</SelectItem>
-                      <SelectItem value="Corto">Corto</SelectItem>
-                      <SelectItem value="Detallado">Detallado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Destino
-                  </Label>
-                  <Select
-                    value={destino}
-                    onValueChange={(v) => setDestino(v as Destino)}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Asesor comercial">Asesor comercial</SelectItem>
-                      <SelectItem value="Mesa de seguimiento">Mesa de seguimiento</SelectItem>
-                      <SelectItem value="Buzón">Buzón</SelectItem>
-                      <SelectItem value="Contrata">Contrata</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Plantilla rápida
+                </Label>
+                <Select value={wspId} onValueChange={(v) => { setWspId(v); setWspManual(false); }}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    {WSP_TEMPLATES.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>{w.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
+              {currentWsp.needsSubmotivo && (
+                <div>
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Detalle (fecha/franja/motivo)
+                  </Label>
+                  <Input
+                    value={wspExtra}
+                    onChange={(e) => { setWspExtra(e.target.value); setWspManual(false); }}
+                    placeholder="Ej.: 28/06 PM2"
+                    className="h-9 text-sm"
+                  />
+                </div>
+              )}
+
               <Textarea
-                value={respuesta}
-                onChange={(e) => {
-                  setRespuesta(e.target.value);
-                  setRespManual(true);
-                }}
-                placeholder="Aquí aparecerá la respuesta generada..."
-                className="min-h-[260px] text-sm"
+                value={wsp}
+                onChange={(e) => { setWsp(e.target.value); setWspManual(true); }}
+                className="min-h-[180px] text-sm"
+                placeholder="Mensaje listo para WhatsApp…"
               />
 
               <div className="grid grid-cols-2 gap-2">
-                <Button onClick={() => copyText(respuesta, "Respuesta")}>
+                <Button onClick={() => copyText(wsp, "Mensaje WSP")}>
                   <ClipboardCopy className="mr-2 h-4 w-4" /> Copiar
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setRespManual(false);
-                    setRespuesta(
-                      generateResponse({ ticket, toa, sga, tono, destino }),
-                    );
-                    toast.success("Respuesta regenerada");
+                    setWspManual(false);
+                    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra }));
+                    toast.success("Mensaje regenerado");
                   }}
                 >
                   <RefreshCcw className="mr-2 h-4 w-4" /> Regenerar
                 </Button>
               </div>
-              <Button
-                variant="secondary"
-                className="w-full"
-                onClick={handleSaveHistory}
-              >
-                <Save className="mr-2 h-4 w-4" /> Guardar en historial
-              </Button>
             </CardContent>
           </Card>
         </div>
@@ -748,10 +832,7 @@ function Dashboard() {
                 <TableBody>
                   {filteredHistory.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="py-8 text-center text-sm text-muted-foreground"
-                      >
+                      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                         Sin registros guardados.
                       </TableCell>
                     </TableRow>
@@ -772,26 +853,16 @@ function Dashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={PRIORITY_STYLE[h.prioridad]}>
-                            {h.prioridad}
-                          </Badge>
+                          <Badge className={PRIORITY_STYLE[h.prioridad]}>{h.prioridad}</Badge>
                         </TableCell>
                         <TableCell className="max-w-[280px] truncate text-xs text-muted-foreground">
                           {h.estado || "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyText(h.respuesta, "Respuesta")}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => copyText(h.respuesta, "Plantilla")}>
                             <ClipboardCopy className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteHistory(h.id)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteHistory(h.id)}>
                             <Trash2 className="h-4 w-4 text-critical" />
                           </Button>
                         </TableCell>
@@ -806,23 +877,69 @@ function Dashboard() {
 
         <Separator />
         <p className="pb-6 text-center text-xs text-muted-foreground">
-          Herramienta interna de apoyo · Datos almacenados solo en este navegador
+          Herramienta interna de apoyo · ADP activo: <span className="font-medium">{adp}</span>
         </p>
       </div>
     </div>
   );
 }
 
-function buildEstado(toa: ToaChecks, sga: SgaChecks): string {
-  const tags: string[] = [];
-  if (toa.estadoCancelado || sga.cancelado) tags.push("Cancelado");
-  if (toa.estadoReagendado || sga.reagendado) tags.push("Reagendado");
-  if (toa.estadoAgenda || sga.enAgenda) tags.push("En agenda");
-  if (toa.franjaVencida) tags.push("Franja vencida");
-  if (toa.franjaVigente) tags.push("Franja vigente");
-  if (toa.tieneTecnico || sga.tieneCuadrilla) tags.push("Con técnico");
-  if (toa.sinTecnico || sga.sinCuadrilla) tags.push("Sin técnico");
-  return tags.join(" · ");
+function AdpDialog({
+  open,
+  onConfirm,
+  current,
+}: {
+  open: boolean;
+  onConfirm: (n: string) => void;
+  current: string;
+}) {
+  const [selected, setSelected] = useState<string>(current || "Jhostin Baldeon");
+  const [custom, setCustom] = useState("");
+  useEffect(() => { setSelected(current || "Jhostin Baldeon"); }, [current, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={() => { /* forzado: requiere confirmar */ }}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>¿Qué ADP eres?</DialogTitle>
+          <DialogDescription>
+            Esto se usará para autocompletar el campo "Realizado por" en las plantillas.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Select value={selected} onValueChange={setSelected}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ADP_OPTIONS.map((a) => (
+                <SelectItem key={a} value={a}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selected === "Otro" && (
+            <Input
+              autoFocus
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              placeholder="Escribe tu nombre"
+            />
+          )}
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => {
+              const name = selected === "Otro" ? custom.trim() : selected;
+              if (!name) return;
+              onConfirm(name);
+            }}
+          >
+            Continuar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function FieldRow({
@@ -864,51 +981,6 @@ function FieldRow({
   );
 }
 
-function ChecklistBlock<T extends Record<string, boolean>>({
-  title,
-  accent,
-  items,
-  state,
-  onToggle,
-}: {
-  title: string;
-  accent: string;
-  items: { key: keyof T; label: string }[];
-  state: T;
-  onToggle: (key: string) => void;
-}) {
-  const activos = items.filter((i) => state[i.key]).length;
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-2">
-        <span className={`h-2.5 w-2.5 rounded-full ${accent}`} />
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <span className="text-xs text-muted-foreground">
-          {activos}/{items.length}
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {items.map((i) => {
-          const active = state[i.key];
-          return (
-            <button
-              key={String(i.key)}
-              onClick={() => onToggle(String(i.key))}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background hover:bg-accent"
-              }`}
-            >
-              {i.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function MetricCard({
   label,
   value,
@@ -916,29 +988,20 @@ function MetricCard({
 }: {
   label: string;
   value: number;
-  tone?: "warn" | "critical" | "info" | "rescue" | "success";
+  tone?: "critical" | "warn" | "info" | "success" | "rescue";
 }) {
   const toneClass =
-    tone === "critical"
-      ? "text-critical"
-      : tone === "warn"
-        ? "text-warn"
-        : tone === "info"
-          ? "text-info"
-          : tone === "rescue"
-            ? "text-rescue"
-            : tone === "success"
-              ? "text-success"
-              : "text-foreground";
+    tone === "critical" ? "text-critical"
+      : tone === "warn" ? "text-warn"
+      : tone === "info" ? "text-info"
+      : tone === "success" ? "text-success"
+      : tone === "rescue" ? "text-rescue"
+      : "text-foreground";
   return (
     <Card>
-      <CardContent className="p-3">
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        <p className={`mt-1 text-2xl font-semibold tabular-nums ${toneClass}`}>
-          {value}
-        </p>
+      <CardContent className="py-3">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className={`text-2xl font-semibold ${toneClass}`}>{value}</p>
       </CardContent>
     </Card>
   );
