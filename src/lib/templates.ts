@@ -598,6 +598,8 @@ export const WSP_TEMPLATES: WspTemplate[] = [
   { id: "equipos", label: "📦 En espera de equipos", body: "@ Estimado SOT: {SOT}. Nos encontramos en espera de equipos, por favor volver a reenviar su plantilla por la tarde, está por confirmarnos el stock de equipos. J.L" },
   { id: "accesorios", label: "🛠️ Escalado contratista - accesorios", body: "@ Estimado SOT: {SOT}. Caso escalado a la contratista. 🛠️ En Hitss quedamos a cargo del monitoreo para asegurar su cumplimiento para los casos de accesorios adicionales. J.L" },
   { id: "cuota-completa", label: "📅 Mantiene fecha - cuota completa", body: "@ SOT: {SOT}. Estimado, por el momento se mantiene fecha de agendamiento según a disposición del SGA. Se verifica que la cuota asignada hasta la fecha se encuentra completa. En caso de tener caídas se priorizará el adelanto de visita. J.L" },
+  { id: "seguimiento-instalado", label: "👀 Seguimiento - Cliente instalado", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que cliente instalado. J.L" },
+  { id: "seguimiento-rechazada", label: "👀 Seguimiento - SOT rechazada", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que esta rechazada por {SUBMOTIVO}. J.L", needsSubmotivo: true },
 ];
 
 export function renderWsp(tpl: WspTemplate, vars: { SOT?: string; SUBMOTIVO?: string }): string {
