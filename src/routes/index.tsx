@@ -64,6 +64,7 @@ import {
   SGA_TEMPLATES,
   TEMPLATE_CATEGORIES,
   WSP_TEMPLATES,
+  adpSignature,
   renderTemplate,
   renderWsp,
   type SgaTemplate,
