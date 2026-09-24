@@ -23,8 +23,15 @@ export interface SgaTemplate {
 export const ADP_OPTIONS = [
   "Jhostin Baldeon",
   "Javier Carrion",
+  "Patrick Coras",
   "Otro",
 ] as const;
+
+/** Firma usada en respuestas WhatsApp según el ADP activo. */
+export function adpSignature(adp: string): string {
+  if (adp === "Patrick Coras") return "P.R";
+  return "J.L";
+}
 
 export const FRANJAS_INFO: { value: string; label: string }[] = [
   { value: "AM0", label: "AM0 · 07:00 – 09:00" },
@@ -602,8 +609,11 @@ export const WSP_TEMPLATES: WspTemplate[] = [
   { id: "seguimiento-rechazada", label: "👀 Seguimiento - SOT rechazada", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que esta rechazada por {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
 ];
 
-export function renderWsp(tpl: WspTemplate, vars: { SOT?: string; SUBMOTIVO?: string }): string {
-  return tpl.body.replace(/\{(SOT|SUBMOTIVO)\}/g, (_, k) => {
+export function renderWsp(
+  tpl: WspTemplate,
+  vars: { SOT?: string; SUBMOTIVO?: string; FIRMA?: string },
+): string {
+  return tpl.body.replace(/\{(SOT|SUBMOTIVO|FIRMA)\}/g, (_, k) => {
     const v = (vars as Record<string, string | undefined>)[k];
     return v && v.trim() ? v : "";
   });
