@@ -30,6 +30,7 @@ export const ADP_OPTIONS = [
 /** Firma usada en respuestas WhatsApp según el ADP activo. */
 export function adpSignature(adp: string): string {
   if (adp === "Patrick Coras") return "P.R";
+  if (adp === "Javier Carrion") return "J.C";
   return "J.L";
 }
 
