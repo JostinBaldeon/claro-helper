@@ -232,7 +232,7 @@ function Dashboard() {
     WSP_TEMPLATES.find((w) => w.id === wspId) ?? WSP_TEMPLATES[0];
   useEffect(() => {
     if (wspManual) return;
-    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra }));
+    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra, FIRMA: adpSignature(adp) }));
   }, [currentWsp, ticket.sot, wspExtra, wspManual]);
 
   const handleAnalyze = () => {
@@ -757,7 +757,7 @@ function Dashboard() {
                   variant="outline"
                   onClick={() => {
                     setWspManual(false);
-                    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra }));
+                    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra, FIRMA: adpSignature(adp) }));
                     toast.success("Mensaje regenerado");
                   }}
                 >
