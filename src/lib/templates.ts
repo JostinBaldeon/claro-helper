@@ -23,8 +23,15 @@ export interface SgaTemplate {
 export const ADP_OPTIONS = [
   "Jhostin Baldeon",
   "Javier Carrion",
+  "Patrick Coras",
   "Otro",
 ] as const;
+
+/** Firma usada en respuestas WhatsApp según el ADP activo. */
+export function adpSignature(adp: string): string {
+  if (adp === "Patrick Coras") return "P.R";
+  return "J.L";
+}
 
 export const FRANJAS_INFO: { value: string; label: string }[] = [
   { value: "AM0", label: "AM0 · 07:00 – 09:00" },
@@ -569,41 +576,44 @@ export interface WspTemplate {
 }
 
 export const WSP_TEMPLATES: WspTemplate[] = [
-  { id: "ruta", label: "🚗 Técnico en ruta", body: "@ 🚗Estimado SOT: {SOT}. Técnico en ruta a la dirección. J.L" },
-  { id: "no-contesta", label: "📵 Cliente no contesta", body: "@ 📵Estimado SOT: {SOT}. Se llamó a cliente y no contesta. J.L" },
-  { id: "confirma-visita", label: "✅ Cliente confirma visita", body: "@ ✅Estimado SOT: {SOT}. Cliente confirma Visita - {SUBMOTIVO}. J.L", needsSubmotivo: true },
-  { id: "en-atencion", label: "⏳ En proceso de atención", body: "@ ⏳ Estimado SOT: {SOT}. Cliente en proceso Atención. J.L" },
-  { id: "rechazado", label: "❌ Cliente rechazado", body: "@ ❌ Estimado SOT: {SOT}. Cliente Rechazado – {SUBMOTIVO} J.L", needsSubmotivo: true },
-  { id: "instalado", label: "🏠✅ Cliente instalado", body: "@ 🏠✅Estimado SOT: {SOT}. Cliente Instalado✅ J.L" },
-  { id: "sot-iniciado", label: "✅ SOT iniciada", body: "@ ✅Estimado SOT: {SOT}. SOT INICIADO J.L" },
-  { id: "confirmo-visita", label: "✅ Confirmó visita (validado)", body: "@ ✅ Estimado SOT: {SOT}, se valida que cliente confirmó Visita - {SUBMOTIVO}. J.L", needsSubmotivo: true },
-  { id: "mantenimientos", label: "⏳ Contrata atendiendo mantenimientos", body: "@⏳Estimado SOT: {SOT}. Cliente en proceso Atención, la contrata se está haciendo cargo de los mantenimientos. J.L" },
-  { id: "postventa", label: "⏳ Contrata atendiendo Postventa", body: "@⏳Estimado SOT: {SOT}. Cliente en proceso Atención, la contrata se está haciendo cargo de las Postventa Junior. J.L" },
-  { id: "cobertura", label: "⏳ Plantilla de cobertura solicitada", body: "@⏳Estimado SOT: {SOT}, cliente en proceso Atención - Se solicitó plantilla de cobertura para poder gestionarlo. J.L" },
-  { id: "escala-sup", label: "⏫ Escalado con supervisor", body: "@ Estimado SOT: {SOT}, se escalará el caso con el supervisor para que se gestione. J.L" },
-  { id: "sin-franja", label: "🟡 Sin franja disponible", body: "@ Estimado SOT: {SOT}, se mantiene la fecha, no hay disponibilidad de franja. J.L" },
-  { id: "3-intentos", label: "📵 3 intentos AICC", body: "@ Estimado SOT: {SOT}, cliente no contesta. Se realizó 3 intentos de llamada desde plataforma AICC. J.L" },
-  { id: "adelanto-ok", label: "✅ Procede adelanto", body: "@ Estimado SOT: {SOT}. Procede adelanto, nueva fecha - {SUBMOTIVO}. J.L", needsSubmotivo: true },
-  { id: "mantiene-franja", label: "✅ Mantiene franja - enrutada", body: "@ Estimado SOT: {SOT}. Se mantiene la franja, SOT enrutada. J.L" },
-  { id: "reprog", label: "🔁 Reprogramó visita", body: "@ Estimado SOT: {SOT}. Se llamó al cliente y se reprogramó la visita {SUBMOTIVO}. J.L", needsSubmotivo: true },
-  { id: "adelanto-llamada", label: "✅ Adelanto tras llamada", body: "@ Estimado SOT: {SOT}. Se llamó al cliente y procede adelanto, nueva fecha - {SUBMOTIVO}. J.L", needsSubmotivo: true },
-  { id: "reprog-enrutada", label: "🔁 Reprogramada y enrutada", body: "@ Estimado SOT: {SOT}. Se reprogramó la visita {SUBMOTIVO}. SOT enrutada. J.L", needsSubmotivo: true },
-  { id: "reprog-ausente", label: "🔁 Reprogramada - cliente ausente", body: "@ Estimado SOT: {SOT}. Se reprogramó la visita {SUBMOTIVO}. Cliente ausente. J.L", needsSubmotivo: true },
-  { id: "reprog-cliente", label: "🔁 Reprogramada por cliente", body: "@ Estimado SOT: {SOT}. Se reprogramó la visita {SUBMOTIVO}. Reagendado por cliente. J.L", needsSubmotivo: true },
-  { id: "enrutada", label: "✅ SOT enrutada", body: "@ Estimado SOT: {SOT}. SOT enrutada {SUBMOTIVO}. J.L", needsSubmotivo: true },
-  { id: "a365", label: "🛠️ Mesa A365 a cargo", body: "@ Estimado SOT: {SOT}. Caso escalado. 🛠️ La mesa A365 está a cargo de la gestión de las SOT correspondientes a tal departamento y contratista. J.L" },
-  { id: "planta-externa", label: "⏳ Derivado a planta externa", body: "@ Estimado SOT: {SOT}. ⏳ Cliente en proceso Atención - se encuentra en estado Derivado Planta Externa, por lo tanto, estaremos a la espera de la confirmación del área correspondiente para derivar a campo. J.L" },
-  { id: "contratista", label: "🛠️ Escalado a contratista", body: "@ Estimado SOT: {SOT}. Caso escalado a la contratista. 🛠️ En Hitss quedamos a cargo del monitoreo para asegurar su cumplimiento. J.L" },
-  { id: "mesa-depto", label: "⏳ Escalado a mesa del departamento", body: "@ Estimado SOT: {SOT}. ⏳ Cliente en proceso Atención - Se escaló caso a la mesa del departamento. J.L" },
-  { id: "equipos", label: "📦 En espera de equipos", body: "@ Estimado SOT: {SOT}. Nos encontramos en espera de equipos, por favor volver a reenviar su plantilla por la tarde, está por confirmarnos el stock de equipos. J.L" },
-  { id: "accesorios", label: "🛠️ Escalado contratista - accesorios", body: "@ Estimado SOT: {SOT}. Caso escalado a la contratista. 🛠️ En Hitss quedamos a cargo del monitoreo para asegurar su cumplimiento para los casos de accesorios adicionales. J.L" },
-  { id: "cuota-completa", label: "📅 Mantiene fecha - cuota completa", body: "@ SOT: {SOT}. Estimado, por el momento se mantiene fecha de agendamiento según a disposición del SGA. Se verifica que la cuota asignada hasta la fecha se encuentra completa. En caso de tener caídas se priorizará el adelanto de visita. J.L" },
-  { id: "seguimiento-instalado", label: "👀 Seguimiento - Cliente instalado", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que cliente instalado. J.L" },
-  { id: "seguimiento-rechazada", label: "👀 Seguimiento - SOT rechazada", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que esta rechazada por {SUBMOTIVO}. J.L", needsSubmotivo: true },
+  { id: "ruta", label: "🚗 Técnico en ruta", body: "@ 🚗Estimado SOT: {SOT}. Técnico en ruta a la dirección. {FIRMA}" },
+  { id: "no-contesta", label: "📵 Cliente no contesta", body: "@ 📵Estimado SOT: {SOT}. Se llamó a cliente y no contesta. {FIRMA}" },
+  { id: "confirma-visita", label: "✅ Cliente confirma visita", body: "@ ✅Estimado SOT: {SOT}. Cliente confirma Visita - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
+  { id: "en-atencion", label: "⏳ En proceso de atención", body: "@ ⏳ Estimado SOT: {SOT}. Cliente en proceso Atención. {FIRMA}" },
+  { id: "rechazado", label: "❌ Cliente rechazado", body: "@ ❌ Estimado SOT: {SOT}. Cliente Rechazado – {SUBMOTIVO} {FIRMA}", needsSubmotivo: true },
+  { id: "instalado", label: "🏠✅ Cliente instalado", body: "@ 🏠✅Estimado SOT: {SOT}. Cliente Instalado✅ {FIRMA}" },
+  { id: "sot-iniciado", label: "✅ SOT iniciada", body: "@ ✅Estimado SOT: {SOT}. SOT INICIADO {FIRMA}" },
+  { id: "confirmo-visita", label: "✅ Confirmó visita (validado)", body: "@ ✅ Estimado SOT: {SOT}, se valida que cliente confirmó Visita - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
+  { id: "mantenimientos", label: "⏳ Contrata atendiendo mantenimientos", body: "@⏳Estimado SOT: {SOT}. Cliente en proceso Atención, la contrata se está haciendo cargo de los mantenimientos. {FIRMA}" },
+  { id: "postventa", label: "⏳ Contrata atendiendo Postventa", body: "@⏳Estimado SOT: {SOT}. Cliente en proceso Atención, la contrata se está haciendo cargo de las Postventa Junior. {FIRMA}" },
+  { id: "cobertura", label: "⏳ Plantilla de cobertura solicitada", body: "@⏳Estimado SOT: {SOT}, cliente en proceso Atención - Se solicitó plantilla de cobertura para poder gestionarlo. {FIRMA}" },
+  { id: "escala-sup", label: "⏫ Escalado con supervisor", body: "@ Estimado SOT: {SOT}, se escalará el caso con el supervisor para que se gestione. {FIRMA}" },
+  { id: "sin-franja", label: "🟡 Sin franja disponible", body: "@ Estimado SOT: {SOT}, se mantiene la fecha, no hay disponibilidad de franja. {FIRMA}" },
+  { id: "3-intentos", label: "📵 3 intentos AICC", body: "@ Estimado SOT: {SOT}, cliente no contesta. Se realizó 3 intentos de llamada desde plataforma AICC. {FIRMA}" },
+  { id: "adelanto-ok", label: "✅ Procede adelanto", body: "@ Estimado SOT: {SOT}. Procede adelanto, nueva fecha - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
+  { id: "mantiene-franja", label: "✅ Mantiene franja - enrutada", body: "@ Estimado SOT: {SOT}. Se mantiene la franja, SOT enrutada. {FIRMA}" },
+  { id: "reprog", label: "🔁 Reprogramó visita", body: "@ Estimado SOT: {SOT}. Se llamó al cliente y se reprogramó la visita {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
+  { id: "adelanto-llamada", label: "✅ Adelanto tras llamada", body: "@ Estimado SOT: {SOT}. Se llamó al cliente y procede adelanto, nueva fecha - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
+  { id: "reprog-enrutada", label: "🔁 Reprogramada y enrutada", body: "@ Estimado SOT: {SOT}. Se reprogramó la visita {SUBMOTIVO}. SOT enrutada. {FIRMA}", needsSubmotivo: true },
+  { id: "reprog-ausente", label: "🔁 Reprogramada - cliente ausente", body: "@ Estimado SOT: {SOT}. Se reprogramó la visita {SUBMOTIVO}. Cliente ausente. {FIRMA}", needsSubmotivo: true },
+  { id: "reprog-cliente", label: "🔁 Reprogramada por cliente", body: "@ Estimado SOT: {SOT}. Se reprogramó la visita {SUBMOTIVO}. Reagendado por cliente. {FIRMA}", needsSubmotivo: true },
+  { id: "enrutada", label: "✅ SOT enrutada", body: "@ Estimado SOT: {SOT}. SOT enrutada {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
+  { id: "a365", label: "🛠️ Mesa A365 a cargo", body: "@ Estimado SOT: {SOT}. Caso escalado. 🛠️ La mesa A365 está a cargo de la gestión de las SOT correspondientes a tal departamento y contratista. {FIRMA}" },
+  { id: "planta-externa", label: "⏳ Derivado a planta externa", body: "@ Estimado SOT: {SOT}. ⏳ Cliente en proceso Atención - se encuentra en estado Derivado Planta Externa, por lo tanto, estaremos a la espera de la confirmación del área correspondiente para derivar a campo. {FIRMA}" },
+  { id: "contratista", label: "🛠️ Escalado a contratista", body: "@ Estimado SOT: {SOT}. Caso escalado a la contratista. 🛠️ En Hitss quedamos a cargo del monitoreo para asegurar su cumplimiento. {FIRMA}" },
+  { id: "mesa-depto", label: "⏳ Escalado a mesa del departamento", body: "@ Estimado SOT: {SOT}. ⏳ Cliente en proceso Atención - Se escaló caso a la mesa del departamento. {FIRMA}" },
+  { id: "equipos", label: "📦 En espera de equipos", body: "@ Estimado SOT: {SOT}. Nos encontramos en espera de equipos, por favor volver a reenviar su plantilla por la tarde, está por confirmarnos el stock de equipos. {FIRMA}" },
+  { id: "accesorios", label: "🛠️ Escalado contratista - accesorios", body: "@ Estimado SOT: {SOT}. Caso escalado a la contratista. 🛠️ En Hitss quedamos a cargo del monitoreo para asegurar su cumplimiento para los casos de accesorios adicionales. {FIRMA}" },
+  { id: "cuota-completa", label: "📅 Mantiene fecha - cuota completa", body: "@ SOT: {SOT}. Estimado, por el momento se mantiene fecha de agendamiento según a disposición del SGA. Se verifica que la cuota asignada hasta la fecha se encuentra completa. En caso de tener caídas se priorizará el adelanto de visita. {FIRMA}" },
+  { id: "seguimiento-instalado", label: "👀 Seguimiento - Cliente instalado", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que cliente instalado. {FIRMA}" },
+  { id: "seguimiento-rechazada", label: "👀 Seguimiento - SOT rechazada", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que esta rechazada por {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
 ];
 
-export function renderWsp(tpl: WspTemplate, vars: { SOT?: string; SUBMOTIVO?: string }): string {
-  return tpl.body.replace(/\{(SOT|SUBMOTIVO)\}/g, (_, k) => {
+export function renderWsp(
+  tpl: WspTemplate,
+  vars: { SOT?: string; SUBMOTIVO?: string; FIRMA?: string },
+): string {
+  return tpl.body.replace(/\{(SOT|SUBMOTIVO|FIRMA)\}/g, (_, k) => {
     const v = (vars as Record<string, string | undefined>)[k];
     return v && v.trim() ? v : "";
   });

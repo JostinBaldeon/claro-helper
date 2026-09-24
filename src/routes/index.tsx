@@ -64,6 +64,7 @@ import {
   SGA_TEMPLATES,
   TEMPLATE_CATEGORIES,
   WSP_TEMPLATES,
+  adpSignature,
   renderTemplate,
   renderWsp,
   type SgaTemplate,
@@ -232,8 +233,8 @@ function Dashboard() {
     WSP_TEMPLATES.find((w) => w.id === wspId) ?? WSP_TEMPLATES[0];
   useEffect(() => {
     if (wspManual) return;
-    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra }));
-  }, [currentWsp, ticket.sot, wspExtra, wspManual]);
+    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra, FIRMA: adpSignature(adp) }));
+  }, [currentWsp, ticket.sot, wspExtra, wspManual, adp]);
 
   const handleAnalyze = () => {
     if (!raw.trim()) {
@@ -757,7 +758,7 @@ function Dashboard() {
                   variant="outline"
                   onClick={() => {
                     setWspManual(false);
-                    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra }));
+                    setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra, FIRMA: adpSignature(adp) }));
                     toast.success("Mensaje regenerado");
                   }}
                 >
