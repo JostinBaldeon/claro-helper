@@ -234,7 +234,7 @@ function Dashboard() {
   useEffect(() => {
     if (wspManual) return;
     setWsp(renderWsp(currentWsp, { SOT: ticket.sot, SUBMOTIVO: wspExtra, FIRMA: adpSignature(adp) }));
-  }, [currentWsp, ticket.sot, wspExtra, wspManual]);
+  }, [currentWsp, ticket.sot, wspExtra, wspManual, adp]);
 
   const handleAnalyze = () => {
     if (!raw.trim()) {
