@@ -24,6 +24,7 @@ export const ADP_OPTIONS = [
   "Jhostin Baldeon",
   "Javier Carrion",
   "Patrick Coras",
+  "Fredy Laredo",
   "Otro",
 ] as const;
 
@@ -31,6 +32,7 @@ export const ADP_OPTIONS = [
 export function adpSignature(adp: string): string {
   if (adp === "Patrick Coras") return "P.R";
   if (adp === "Javier Carrion") return "J.C";
+  if (adp === "Fredy Laredo") return "F.L";
   return "J.L";
 }
 
