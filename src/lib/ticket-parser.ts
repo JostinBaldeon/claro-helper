@@ -11,7 +11,7 @@ export type CaseType =
 
 export type Priority = "Crítica" | "Alta" | "Media/Alta" | "Media" | "Baja";
 
-export type Franja = "AM0" | "AM1" | "AM2" | "PM1" | "PM2" | "";
+export type Franja = "AM0" | "AM1" | "PM1" | "";
 
 export interface ParsedTicket {
   sot: string;
@@ -26,6 +26,11 @@ export interface ParsedTicket {
   contrata: string;
   dac: string;
   observacion: string;
+  codCliente: string;
+  subtipo: string;
+  servicio: string;
+  direccion: string;
+  plano: string;
   caso: CaseType;
   prioridad: Priority;
   accionSugerida: string;
@@ -95,17 +100,13 @@ function detectFranja(text: string): Franja {
   const t = text.toUpperCase();
   if (/\bAM0\b/.test(t)) return "AM0";
   if (/\bAM1\b/.test(t)) return "AM1";
-  if (/\bAM2\b/.test(t)) return "AM2";
   if (/\bPM1\b/.test(t)) return "PM1";
-  if (/\bPM2\b/.test(t)) return "PM2";
   const hourMatch = t.match(/\b(\d{1,2}):(\d{2})\b/);
   if (hourMatch) {
     const h = parseInt(hourMatch[1], 10);
     if (h >= 7 && h < 9) return "AM0";
     if (h >= 9 && h < 11) return "AM1";
-    if (h >= 11 && h < 13) return "AM2";
     if (h >= 14 && h < 16) return "PM1";
-    if (h >= 16 && h < 18) return "PM2";
   }
   return "";
 }
@@ -150,7 +151,64 @@ function extractDni(text: string): string {
   return "";
 }
 
+/** Ticket copiado de TOA: etiqueta en una línea y valor en la siguiente. */
+export function isToaTicket(text: string): boolean {
+  return /ID de actividad/i.test(text) && /Datos del cliente/i.test(text);
+}
+
+function toaLines(text: string): string[] {
+  return text.split(/\r?\n/).map((l) => l.trim());
+}
+
+function toaValue(lines: string[], label: string): string {
+  const key = label.toLowerCase();
+  const i = lines.findIndex((l) => l.toLowerCase() === key);
+  if (i < 0) return "";
+  for (let j = i + 1; j < Math.min(lines.length, i + 3); j++) {
+    if (lines[j]) return lines[j];
+  }
+  return "";
+}
+
+function parseToa(text: string): ParsedTicket {
+  const L = toaLines(text);
+  const header = toaValue(L, "Detalles de actividad");
+  // "INST CICSA TACNA MULTI - 4F ZN01, 20/10/26" -> CICSA
+  const contrata = header.split(/\s+/)[1] ?? "";
+  const fechaProg = toaValue(L, "Fecha de Programacion");
+  const iFecha = L.findIndex((l) => l.toLowerCase() === "fecha de programacion");
+  const franjaLine = iFecha >= 0 ? L.slice(iFecha + 2, iFecha + 4).join(" ") : "";
+  const subtipo = toaValue(L, "Sub Tipo de Orden");
+  const habilidad = toaValue(L, "Habilidad").replace(/\s*\(.*\)\s*$/, "");
+  const notas = toaValue(L, "Notas / Observaciones");
+  const franja = detectFranja(franjaLine) || detectFranja(text);
+  const caso = findCase(notas);
+  return {
+    sot: toaValue(L, "SOT"),
+    sotCandidates: [],
+    cliente: toaValue(L, "Nombre"),
+    dni: toaValue(L, "Nro. Documento Cliente"),
+    telefono: toaValue(L, "Telefono"),
+    departamento: toaValue(L, "Departmento") || toaValue(L, "Departamento"),
+    distrito: toaValue(L, "Distrito"),
+    fechaInstalacion: fechaProg,
+    franja,
+    contrata,
+    dac: "",
+    observacion: notas,
+    codCliente: toaValue(L, "Código de Cliente") || toaValue(L, "Codigo de Cliente"),
+    subtipo,
+    servicio: habilidad,
+    direccion: toaValue(L, "Direccion"),
+    plano: toaValue(L, "Plano"),
+    caso,
+    prioridad: getPriority(caso, notas),
+    accionSugerida: "",
+  };
+}
+
 export function parseTicket(text: string): ParsedTicket {
+  if (isToaTicket(text)) return parseToa(text);
   const sots = extractSOTs(text);
   const cliente = extractAfter(text, ["CLIENTE"]);
   const dni = extractDni(text);
@@ -205,6 +263,11 @@ export function parseTicket(text: string): ParsedTicket {
     contrata,
     dac,
     observacion,
+    codCliente: extractAfter(text, ["CODIGO DE CLIENTE", "CÓDIGO DE CLIENTE", "COD CLIENTE"]),
+    subtipo: extractAfter(text, ["SUB TIPO", "SUBTIPO"]),
+    servicio: extractAfter(text, ["SERVICIO"]),
+    direccion: extractAfter(text, ["DIRECCION", "DIRECCIÓN"]),
+    plano: extractAfter(text, ["PLANO"]),
     caso,
     prioridad,
     accionSugerida,
@@ -400,13 +463,134 @@ export const CASE_LABEL: Record<CaseType, string> = {
   GENERAL: "Caso general",
 };
 
-export const EXAMPLE_TICKET = `INCUMPLIMIENTO
-CLIENTE: CLIENTE DEMO
-SOT: 88479396
-FECHA Y HORARIO DE INSTALACION: 23/06/2026 11:00
-TELEF: 999999999
-DISTRITO: MARCONA
-DPTO: ICA
-CONTRATA: INSERTEL
-OBSERVACION: CLIENTE EN CASA A LA ESPERA DE LA VISITA
-DAC: MCORTEZ CALL`;
+export const EXAMPLE_TICKET = `Detalles de actividad
+INST CICSA TACNA MULTI - 4F ZN01, 20/10/26
+Datos de la actividad
+ID de actividad
+23898752
+Posición en Ruta
+Ordenado
+SOT
+91835706
+Código de Cliente
+05383948
+ID Agenda
+113289478
+Estado
+Pendiente
+Estado Agenda
+1
+Acciones Orden
+[830] FTTH - SISACT INSTALACION PAQUETES TODO CLARO DIGITAL
+Habilidad
+FTTH - Instalacion(75/100)
+Tipo de Orden
+FTTH Instalacion
+Sub Tipo de Orden
+FTTH01 - 1PLAY INTERNET
+Fecha de Generacion de la Orden
+17/10/2026
+Fecha de Programacion
+20/10/26
+AM1
+Intervalo de tiempo
+
+20/10/26 09:00
+SLA inicio
+Formato de entrada: día/mes/año H:i. Pulse la tecla arriba y la tecla abajo para acceder al calendario. Pulse Mayús + tecla abajo o Mayús + tecla arriba para acceder al selector de hora.
+20/10/26 13:00
+SLA fin
+Formato de entrada: día/mes/año H:i. Pulse la tecla arriba y la tecla abajo para acceder al calendario. Pulse Mayús + tecla abajo o Mayús + tecla arriba para acceder al selector de hora.
+Duracion
+2 Horas 20 min
+Notas / Observaciones
+PROCESO AUTOMATICO - INTERFAZ FTTH SISACT - PLAZO DE ACUERDO CONTRACTUAL 0SEC.108002589
+Datos de la atención
+Fecha de Generacion de la Orden
+17/10/2026
+Coordenada X
+-70.23593
+Coordenada Y
+-17.99831
+Observaciones y quiebre
+Observación ADP Seguimiento
+Seguimiento de Cuadrilla
+Llamada de Seguimiento
+
+
+¿Se requiere equipo?
+Datos del cliente
+Nombre
+JORGE GUERRA MATA
+Tipo de Documento del Cliente
+CARNET DE EXTRANJERIA
+Nro. Documento Cliente
+009571913
+Telefono
+987545589
+No
+VIP
+
+No
+Alerta Reagendamiento
+
+No
+Alta Dilación
+
+No
+Cliente FOES
+
+NO
+Contingencia
+
+No
+Cliente Confirmado Programación
+
+Cliente Confirmado Seguimiento
+
+No
+Cliente Recuperado
+
+PM3 ADP
+
+
+Revisión Overlap
+
+Full Claro
+
+Fuera de TOA
+
+Adelanto por Contratista
+
+Proyecto Titan
+
+Puerta a Puerta
+
+Mantenimiento 30 Días
+
+Sin Servicio - IN HOUSE
+
+Retención Prioridad
+
+Requiere Escalera
+
+Retorno a Campo
+
+Derivado vía Buzón
+Dirección de atención de la actividad
+Departmento
+TACNA
+Provincia
+TACNA
+Distrito
+TACNA
+Direccion
+AV MIGUEL GRAU 1922 INTERIOR Piso CORONEL FRANCISCO BOLOGNESI -
+Referencia Direccion
+. -18.04844,-70.246483 - 987332639 -
+Plano
+0TCNA016-S
+Zona de trabajo
+9649 - TAC_TACNA_ZN01
+Plantilla del Motor
+Con Plantilla`;
