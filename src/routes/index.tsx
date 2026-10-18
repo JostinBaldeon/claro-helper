@@ -15,6 +15,8 @@ import {
   Sparkles,
   Trash2,
   User,
+  Moon,
+  Sun,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -120,6 +122,11 @@ function emptyTicket(): ParsedTicket {
     contrata: "",
     dac: "",
     observacion: "",
+    codCliente: "",
+    subtipo: "",
+    servicio: "",
+    direccion: "",
+    plano: "",
     caso: "GENERAL",
     prioridad: "Media",
     accionSugerida: "",
@@ -144,7 +151,44 @@ function diaFranja(t: ParsedTicket): string {
   return [fechaCorta, t.franja].filter(Boolean).join(" ");
 }
 
+function tplVars(t: ParsedTicket, adp: string, submotivo: string) {
+  return {
+    SOT: t.sot,
+    DIA_FRANJA: diaFranja(t),
+    CLIENTE: t.cliente,
+    NUMERO: t.telefono,
+    CONTRATA: t.contrata,
+    ADP: adp,
+    SUBMOTIVO: submotivo,
+    SUBTIPO: t.subtipo,
+    DIRECCION: t.direccion,
+    DISTRITO: t.distrito,
+    SERVICIO: t.servicio,
+    PLANO: t.plano,
+    COD_CLIENTE: t.codCliente,
+  };
+}
+
+type Theme = "light" | "dark" | "halloween";
+const THEME_KEY = "helpdesk_claro_theme_v1";
+
+function applyTheme(t: Theme) {
+  const el = document.documentElement;
+  el.classList.toggle("dark", t !== "light");
+  el.classList.toggle("halloween", t === "halloween");
+}
+
 function Dashboard() {
+  const [theme, setTheme] = useState<Theme>("light");
+  useEffect(() => {
+    const saved = window.localStorage.getItem(THEME_KEY) as Theme | null;
+    if (saved === "dark" || saved === "halloween" || saved === "light") setTheme(saved);
+  }, []);
+  useEffect(() => {
+    applyTheme(theme);
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
   // ADP activo
   const [adp, setAdp] = useState<string>("Jhostin Baldeon");
   const [adpAskOpen, setAdpAskOpen] = useState(false);
@@ -216,15 +260,7 @@ function Dashboard() {
     if (respManual) return;
     if (!currentTpl) return;
     setRespuesta(
-      renderTemplate(currentTpl, {
-        SOT: ticket.sot,
-        DIA_FRANJA: diaFranja(ticket),
-        CLIENTE: ticket.cliente,
-        NUMERO: ticket.telefono,
-        CONTRATA: ticket.contrata,
-        ADP: adp,
-        SUBMOTIVO: submotivo,
-      }),
+      renderTemplate(currentTpl, tplVars(ticket, adp, submotivo)),
     );
   }, [currentTpl, ticket, submotivo, adp, respManual]);
 
@@ -366,6 +402,23 @@ function Dashboard() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              title="Cambiar tema claro / oscuro"
+            >
+              {theme === "light" ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
+              {theme === "light" ? "Oscuro" : "Claro"}
+            </Button>
+            <Button
+              variant={theme === "halloween" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTheme(theme === "halloween" ? "dark" : "halloween")}
+              title="Tema Halloween"
+            >
+              🎃 Halloween
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setAdpAskOpen(true)}
               title="Cambiar ADP activo"
             >
@@ -406,14 +459,14 @@ function Dashboard() {
           <Card className="lg:col-span-3">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" /> Ticket WhatsApp
+                <FileText className="h-4 w-4" /> Ticket TOA
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Textarea
                 value={raw}
                 onChange={(e) => setRaw(e.target.value)}
-                placeholder="Pega aquí el ticket recibido por WhatsApp..."
+                placeholder="Pega aquí el detalle de actividad copiado de TOA..."
                 className="min-h-[260px] font-mono text-xs"
               />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -472,132 +525,6 @@ function Dashboard() {
 
           {/* Panel central */}
           <div className="space-y-4 lg:col-span-6">
-            {/* Datos detectados */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <span className={`h-2.5 w-2.5 rounded-full ${CASE_DOT[ticket.caso]}`} />
-                  Datos detectados
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge className={PRIORITY_STYLE[ticket.prioridad]}>
-                    {ticket.prioridad}
-                  </Badge>
-                  <Badge variant="outline">{CASE_LABEL[ticket.caso]}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {!analyzed ? (
-                  <p className="rounded-md border border-dashed bg-surface-2 py-10 text-center text-sm text-muted-foreground">
-                    Analiza un ticket para ver los datos extraídos automáticamente.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                    <FieldRow
-                      label="SOT"
-                      value={ticket.sot}
-                      onChange={(v) => setTicket({ ...ticket, sot: v })}
-                      action={
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyText(ticket.sot || "", "SOT")}
-                        >
-                          <ClipboardCopy className="h-3.5 w-3.5" />
-                        </Button>
-                      }
-                    />
-                    <FieldRow
-                      label="Cliente"
-                      value={ticket.cliente}
-                      onChange={(v) => setTicket({ ...ticket, cliente: v })}
-                    />
-                    <FieldRow
-                      label="DNI/RUC"
-                      value={ticket.dni}
-                      onChange={(v) => setTicket({ ...ticket, dni: v })}
-                    />
-                    <FieldRow
-                      label="Teléfono"
-                      value={ticket.telefono}
-                      onChange={(v) => setTicket({ ...ticket, telefono: v })}
-                    />
-                    <FieldRow
-                      label="Departamento"
-                      value={ticket.departamento}
-                      onChange={(v) => setTicket({ ...ticket, departamento: v })}
-                    />
-                    <FieldRow
-                      label="Distrito"
-                      value={ticket.distrito}
-                      onChange={(v) => setTicket({ ...ticket, distrito: v })}
-                    />
-                    <FieldRow
-                      label="Fecha instalación"
-                      value={ticket.fechaInstalacion}
-                      onChange={(v) => setTicket({ ...ticket, fechaInstalacion: v })}
-                    />
-                    <div className="space-y-1">
-                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Franja
-                      </Label>
-                      <Select
-                        value={ticket.franja || "NONE"}
-                        onValueChange={(v) =>
-                          setTicket({
-                            ...ticket,
-                            franja: v === "NONE" ? "" : (v as Franja),
-                          })
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="No detectada" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="NONE">No detectada</SelectItem>
-                          {FRANJAS_INFO.map((f) => (
-                            <SelectItem key={f.value} value={f.value}>
-                              {f.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <FieldRow
-                      label="Contrata"
-                      value={ticket.contrata}
-                      onChange={(v) => setTicket({ ...ticket, contrata: v })}
-                    />
-                    <FieldRow
-                      label="DAC"
-                      value={ticket.dac}
-                      onChange={(v) => setTicket({ ...ticket, dac: v })}
-                    />
-                    <div className="col-span-2 space-y-1 md:col-span-3">
-                      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Observación
-                      </Label>
-                      <Textarea
-                        value={ticket.observacion}
-                        onChange={(e) =>
-                          setTicket({ ...ticket, observacion: e.target.value })
-                        }
-                        className="min-h-[60px] text-xs"
-                      />
-                    </div>
-                  </div>
-                )}
-                {analyzed && !ticket.sot && (
-                  <Alert className="mt-3 border-warn/40 bg-warn/10">
-                    <AlertTriangle className="h-4 w-4 text-warn" />
-                    <AlertDescription className="text-xs">
-                      No se detectó SOT. Ingrésala manualmente en el campo correspondiente.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Estado de SOT - plantilla seleccionable */}
             <Card>
               <CardHeader className="pb-3">
@@ -681,15 +608,7 @@ function Dashboard() {
                     onClick={() => {
                       setRespManual(false);
                       setRespuesta(
-                        renderTemplate(currentTpl, {
-                          SOT: ticket.sot,
-                          DIA_FRANJA: diaFranja(ticket),
-                          CLIENTE: ticket.cliente,
-                          NUMERO: ticket.telefono,
-                          CONTRATA: ticket.contrata,
-                          ADP: adp,
-                          SUBMOTIVO: submotivo,
-                        }),
+                        renderTemplate(currentTpl, tplVars(ticket, adp, submotivo)),
                       );
                       toast.success("Plantilla regenerada");
                     }}
@@ -737,7 +656,7 @@ function Dashboard() {
                   <Input
                     value={wspExtra}
                     onChange={(e) => { setWspExtra(e.target.value); setWspManual(false); }}
-                    placeholder="Ej.: 28/06 PM2"
+                    placeholder="Ej.: 28/06 PM1"
                     className="h-9 text-sm"
                   />
                 </div>

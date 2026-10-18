@@ -174,3 +174,31 @@
     font-feature-settings: "cv11", "ss01";
   }
 }
+
+.dark {
+  --surface: oklch(0.16 0.035 264);
+  --surface-2: oklch(0.22 0.04 264);
+}
+
+/* Tema Halloween: base oscura con naranja calabaza y morado */
+.halloween {
+  --background: oklch(0.16 0.03 300);
+  --foreground: oklch(0.95 0.03 80);
+  --card: oklch(0.21 0.05 300);
+  --card-foreground: oklch(0.95 0.03 80);
+  --popover: oklch(0.21 0.05 300);
+  --popover-foreground: oklch(0.95 0.03 80);
+  --primary: oklch(0.72 0.19 50);
+  --primary-foreground: oklch(0.15 0.03 300);
+  --secondary: oklch(0.3 0.08 300);
+  --secondary-foreground: oklch(0.95 0.03 80);
+  --muted: oklch(0.28 0.06 300);
+  --muted-foreground: oklch(0.75 0.06 70);
+  --accent: oklch(0.32 0.1 300);
+  --accent-foreground: oklch(0.95 0.03 80);
+  --border: oklch(0.72 0.19 50 / 25%);
+  --input: oklch(0.72 0.19 50 / 30%);
+  --ring: oklch(0.72 0.19 50);
+  --surface: oklch(0.13 0.03 300);
+  --surface-2: oklch(0.24 0.07 300);
+}

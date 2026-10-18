@@ -463,13 +463,134 @@ export const CASE_LABEL: Record<CaseType, string> = {
   GENERAL: "Caso general",
 };
 
-export const EXAMPLE_TICKET = `INCUMPLIMIENTO
-CLIENTE: CLIENTE DEMO
-SOT: 88479396
-FECHA Y HORARIO DE INSTALACION: 23/06/2026 11:00
-TELEF: 999999999
-DISTRITO: MARCONA
-DPTO: ICA
-CONTRATA: INSERTEL
-OBSERVACION: CLIENTE EN CASA A LA ESPERA DE LA VISITA
-DAC: MCORTEZ CALL`;
+export const EXAMPLE_TICKET = `Detalles de actividad
+INST CICSA TACNA MULTI - 4F ZN01, 20/10/26
+Datos de la actividad
+ID de actividad
+23898752
+Posición en Ruta
+Ordenado
+SOT
+91835706
+Código de Cliente
+05383948
+ID Agenda
+113289478
+Estado
+Pendiente
+Estado Agenda
+1
+Acciones Orden
+[830] FTTH - SISACT INSTALACION PAQUETES TODO CLARO DIGITAL
+Habilidad
+FTTH - Instalacion(75/100)
+Tipo de Orden
+FTTH Instalacion
+Sub Tipo de Orden
+FTTH01 - 1PLAY INTERNET
+Fecha de Generacion de la Orden
+17/10/2026
+Fecha de Programacion
+20/10/26
+AM1
+Intervalo de tiempo
+
+20/10/26 09:00
+SLA inicio
+Formato de entrada: día/mes/año H:i. Pulse la tecla arriba y la tecla abajo para acceder al calendario. Pulse Mayús + tecla abajo o Mayús + tecla arriba para acceder al selector de hora.
+20/10/26 13:00
+SLA fin
+Formato de entrada: día/mes/año H:i. Pulse la tecla arriba y la tecla abajo para acceder al calendario. Pulse Mayús + tecla abajo o Mayús + tecla arriba para acceder al selector de hora.
+Duracion
+2 Horas 20 min
+Notas / Observaciones
+PROCESO AUTOMATICO - INTERFAZ FTTH SISACT - PLAZO DE ACUERDO CONTRACTUAL 0SEC.108002589
+Datos de la atención
+Fecha de Generacion de la Orden
+17/10/2026
+Coordenada X
+-70.23593
+Coordenada Y
+-17.99831
+Observaciones y quiebre
+Observación ADP Seguimiento
+Seguimiento de Cuadrilla
+Llamada de Seguimiento
+
+
+¿Se requiere equipo?
+Datos del cliente
+Nombre
+JORGE GUERRA MATA
+Tipo de Documento del Cliente
+CARNET DE EXTRANJERIA
+Nro. Documento Cliente
+009571913
+Telefono
+987545589
+No
+VIP
+
+No
+Alerta Reagendamiento
+
+No
+Alta Dilación
+
+No
+Cliente FOES
+
+NO
+Contingencia
+
+No
+Cliente Confirmado Programación
+
+Cliente Confirmado Seguimiento
+
+No
+Cliente Recuperado
+
+PM3 ADP
+
+
+Revisión Overlap
+
+Full Claro
+
+Fuera de TOA
+
+Adelanto por Contratista
+
+Proyecto Titan
+
+Puerta a Puerta
+
+Mantenimiento 30 Días
+
+Sin Servicio - IN HOUSE
+
+Retención Prioridad
+
+Requiere Escalera
+
+Retorno a Campo
+
+Derivado vía Buzón
+Dirección de atención de la actividad
+Departmento
+TACNA
+Provincia
+TACNA
+Distrito
+TACNA
+Direccion
+AV MIGUEL GRAU 1922 INTERIOR Piso CORONEL FRANCISCO BOLOGNESI -
+Referencia Direccion
+. -18.04844,-70.246483 - 987332639 -
+Plano
+0TCNA016-S
+Zona de trabajo
+9649 - TAC_TACNA_ZN01
+Plantilla del Motor
+Con Plantilla`;
