@@ -11,7 +11,7 @@ export type CaseType =
 
 export type Priority = "Crítica" | "Alta" | "Media/Alta" | "Media" | "Baja";
 
-export type Franja = "AM0" | "AM1" | "AM2" | "PM1" | "PM2" | "";
+export type Franja = "AM0" | "AM1" | "PM1" | "";
 
 export interface ParsedTicket {
   sot: string;
@@ -26,6 +26,11 @@ export interface ParsedTicket {
   contrata: string;
   dac: string;
   observacion: string;
+  codCliente: string;
+  subtipo: string;
+  servicio: string;
+  direccion: string;
+  plano: string;
   caso: CaseType;
   prioridad: Priority;
   accionSugerida: string;
@@ -95,17 +100,13 @@ function detectFranja(text: string): Franja {
   const t = text.toUpperCase();
   if (/\bAM0\b/.test(t)) return "AM0";
   if (/\bAM1\b/.test(t)) return "AM1";
-  if (/\bAM2\b/.test(t)) return "AM2";
   if (/\bPM1\b/.test(t)) return "PM1";
-  if (/\bPM2\b/.test(t)) return "PM2";
   const hourMatch = t.match(/\b(\d{1,2}):(\d{2})\b/);
   if (hourMatch) {
     const h = parseInt(hourMatch[1], 10);
     if (h >= 7 && h < 9) return "AM0";
     if (h >= 9 && h < 11) return "AM1";
-    if (h >= 11 && h < 13) return "AM2";
     if (h >= 14 && h < 16) return "PM1";
-    if (h >= 16 && h < 18) return "PM2";
   }
   return "";
 }
@@ -150,7 +151,64 @@ function extractDni(text: string): string {
   return "";
 }
 
+/** Ticket copiado de TOA: etiqueta en una línea y valor en la siguiente. */
+export function isToaTicket(text: string): boolean {
+  return /ID de actividad/i.test(text) && /Datos del cliente/i.test(text);
+}
+
+function toaLines(text: string): string[] {
+  return text.split(/\r?\n/).map((l) => l.trim());
+}
+
+function toaValue(lines: string[], label: string): string {
+  const key = label.toLowerCase();
+  const i = lines.findIndex((l) => l.toLowerCase() === key);
+  if (i < 0) return "";
+  for (let j = i + 1; j < Math.min(lines.length, i + 3); j++) {
+    if (lines[j]) return lines[j];
+  }
+  return "";
+}
+
+function parseToa(text: string): ParsedTicket {
+  const L = toaLines(text);
+  const header = toaValue(L, "Detalles de actividad");
+  // "INST CICSA TACNA MULTI - 4F ZN01, 20/10/26" -> CICSA
+  const contrata = header.split(/\s+/)[1] ?? "";
+  const fechaProg = toaValue(L, "Fecha de Programacion");
+  const iFecha = L.findIndex((l) => l.toLowerCase() === "fecha de programacion");
+  const franjaLine = iFecha >= 0 ? L.slice(iFecha + 2, iFecha + 4).join(" ") : "";
+  const subtipo = toaValue(L, "Sub Tipo de Orden");
+  const habilidad = toaValue(L, "Habilidad").replace(/\s*\(.*\)\s*$/, "");
+  const notas = toaValue(L, "Notas / Observaciones");
+  const franja = detectFranja(franjaLine) || detectFranja(text);
+  const caso = findCase(notas);
+  return {
+    sot: toaValue(L, "SOT"),
+    sotCandidates: [],
+    cliente: toaValue(L, "Nombre"),
+    dni: toaValue(L, "Nro. Documento Cliente"),
+    telefono: toaValue(L, "Telefono"),
+    departamento: toaValue(L, "Departmento") || toaValue(L, "Departamento"),
+    distrito: toaValue(L, "Distrito"),
+    fechaInstalacion: fechaProg,
+    franja,
+    contrata,
+    dac: "",
+    observacion: notas,
+    codCliente: toaValue(L, "Código de Cliente") || toaValue(L, "Codigo de Cliente"),
+    subtipo,
+    servicio: habilidad,
+    direccion: toaValue(L, "Direccion"),
+    plano: toaValue(L, "Plano"),
+    caso,
+    prioridad: getPriority(caso, notas),
+    accionSugerida: "",
+  };
+}
+
 export function parseTicket(text: string): ParsedTicket {
+  if (isToaTicket(text)) return parseToa(text);
   const sots = extractSOTs(text);
   const cliente = extractAfter(text, ["CLIENTE"]);
   const dni = extractDni(text);
@@ -205,6 +263,11 @@ export function parseTicket(text: string): ParsedTicket {
     contrata,
     dac,
     observacion,
+    codCliente: extractAfter(text, ["CODIGO DE CLIENTE", "CÓDIGO DE CLIENTE", "COD CLIENTE"]),
+    subtipo: extractAfter(text, ["SUB TIPO", "SUBTIPO"]),
+    servicio: extractAfter(text, ["SERVICIO"]),
+    direccion: extractAfter(text, ["DIRECCION", "DIRECCIÓN"]),
+    plano: extractAfter(text, ["PLANO"]),
     caso,
     prioridad,
     accionSugerida,
