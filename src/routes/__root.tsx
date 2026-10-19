@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -35,7 +36,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void; info?: unknown }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -78,18 +79,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "WhatsApp Assistant Pro is a web app that streamlines WhatsApp ticket handling for internet installations." },
+      { title: "Asistente Help Desk Claro · Instalaciones" },
+      { name: "description", content: "Panel local para atención de instalaciones Claro." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "WhatsApp Assistant Pro is a web app that streamlines WhatsApp ticket handling for internet installations." },
+      { property: "og:title", content: "Asistente Help Desk Claro · Instalaciones" },
+      { property: "og:description", content: "Panel local para atención de instalaciones Claro." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "WhatsApp Assistant Pro is a web app that streamlines WhatsApp ticket handling for internet installations." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6cfbcc80-1775-42b3-b06c-f53b88f685bd/id-preview-008e014e--9e104a02-feca-458c-9de2-b7b4e3620edb.lovable.app-1782304788622.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6cfbcc80-1775-42b3-b06c-f53b88f685bd/id-preview-008e014e--9e104a02-feca-458c-9de2-b7b4e3620edb.lovable.app-1782304788622.png" },
+      { name: "twitter:title", content: "Asistente Help Desk Claro · Instalaciones" },
+      { name: "twitter:description", content: "Panel local para atención de instalaciones Claro." },
     ],
     links: [
       {
