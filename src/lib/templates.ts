@@ -27,6 +27,7 @@ export const ADP_OPTIONS = [
   "Fredy Laredo",
   "Angel Potesta",
   "Edwin Zorrilla",
+  "Angie Mori",
   "Otro",
 ] as const;
 
@@ -37,13 +38,15 @@ export function adpSignature(adp: string): string {
   if (adp === "Fredy Laredo") return "F.L";
   if (adp === "Angel Potesta") return "D.P";
   if (adp === "Edwin Zorrilla") return "E.Z";
+  if (adp === "Angie Mori") return "A.M";
   return "J.L";
 }
 
 export const FRANJAS_INFO: { value: string; label: string }[] = [
   { value: "AM0", label: "AM0 · 07:00 – 09:00" },
-  { value: "AM1", label: "AM1 · 09:00 – 11:00" },
-  { value: "PM1", label: "PM1 · 14:00 – 16:00" },
+  { value: "AM1", label: "AM1 · 09:00 – 13:00" },
+  { value: "PM1", label: "PM1 · 14:00 – 18:00" },
+  { value: "PM3", label: "PM3 · 18:00 – 20:00" },
 ];
 
 export const SGA_TEMPLATES: SgaTemplate[] = [
@@ -92,7 +95,7 @@ REALIZADO POR: {ADP}`,
     category: "Habilitación",
     body: `MESA MULTISKILL HITSS - FORMATO PARA HABILITAR FRANJA
 📥 SOT: {SOT}
-🪚 PLANO: 
+🪚 PLANO: {PLANO}
 📅 FECHA Y FRANJA: {DIA_FRANJA}
 📧 Motivo: SIN FRANJAS DISPONIBLES
 🚨‍ Sup acargo: NICOL MALASQUEZ`,
@@ -351,6 +354,32 @@ export interface WspTemplate {
 }
 
 export const WSP_TEMPLATES: WspTemplate[] = [
+  {
+    id: "los-5-rechazos",
+    label: "Los 5 rechazos",
+    body: `Buen día,  @
+
+SOT:{SOT} fue rechazada por la mesa de cobertura de instalaciones, Geodir. Por favor derivar al buzón de Análisis rechazó por cobertura Red HFC.
+
+Considerar que deben ser enviado al buzón de analisis_rechazoporcoberturaredhfc@claro.com.pe los casos rechazados por:
+
+Rechazo - Falta de infraestructura de red
+Rechazo - Edificio no liberado
+Rechazo - Factibilidad Técnica.
+Rechazo - Red Saturada
+Rechazo - Transacción no autorizada
+
+Recordar por favor llenar esta plantilla al momento del envió del correo.
+* Numero de SOT:
+* Coordenadas confirmadas con el cliente:
+* Dirección:
+* Distrito:
+* Tipo de vivienda - Casa/Edificio residencial:
+* Nodo/Plano:
+* Tipo de Rechazo: (Falta de Infraestructura de Red/Factibilidad Técnica/Edificio no Liberado/Fat Saturada)
+* Imágenes de la ubicación del domicilio dentro de los mapas de cobertura.
+{FIRMA}`,
+  },
   { id: "ruta", label: "🚗 Técnico en ruta", body: "@ 🚗Estimado SOT: {SOT}. Técnico en ruta a la dirección. {FIRMA}" },
   { id: "no-contesta", label: "📵 Cliente no contesta", body: "@ 📵Estimado SOT: {SOT}. Se llamó a cliente y no contesta. {FIRMA}" },
   { id: "confirma-visita", label: "✅ Cliente confirma visita", body: "@ ✅Estimado SOT: {SOT}. Cliente confirma Visita - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },

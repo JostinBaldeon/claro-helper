@@ -84,6 +84,10 @@ export const Route = createFileRoute("/")({
         content:
           "Panel local para acelerar la atención de tickets de instalación de internet recibidos por WhatsApp. Extrae datos, clasifica el caso y genera respuesta lista para copiar.",
       },
+      { property: "og:title", content: "Asistente Help Desk Claro · Instalaciones" },
+      { property: "og:description", content: "Panel local de atención de instalaciones Claro con plantillas SGA y respuestas de WhatsApp." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,

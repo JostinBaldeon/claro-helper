@@ -11,7 +11,7 @@ export type CaseType =
 
 export type Priority = "Crítica" | "Alta" | "Media/Alta" | "Media" | "Baja";
 
-export type Franja = "AM0" | "AM1" | "PM1" | "";
+export type Franja = "AM0" | "AM1" | "PM1" | "PM3" | "";
 
 export interface ParsedTicket {
   sot: string;
@@ -101,12 +101,14 @@ function detectFranja(text: string): Franja {
   if (/\bAM0\b/.test(t)) return "AM0";
   if (/\bAM1\b/.test(t)) return "AM1";
   if (/\bPM1\b/.test(t)) return "PM1";
+  if (/\bPM3\b/.test(t)) return "PM3";
   const hourMatch = t.match(/\b(\d{1,2}):(\d{2})\b/);
   if (hourMatch) {
     const h = parseInt(hourMatch[1], 10);
     if (h >= 7 && h < 9) return "AM0";
-    if (h >= 9 && h < 11) return "AM1";
-    if (h >= 14 && h < 16) return "PM1";
+    if (h >= 9 && h < 13) return "AM1";
+    if (h >= 14 && h < 18) return "PM1";
+    if (h >= 18 && h < 20) return "PM3";
   }
   return "";
 }

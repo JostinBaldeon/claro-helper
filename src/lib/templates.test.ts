@@ -1,0 +1,54 @@
+import { describe, expect, test } from "bun:test";
+import { ADP_OPTIONS, FRANJAS_INFO, SGA_TEMPLATES, WSP_TEMPLATES, adpSignature, renderTemplate, renderWsp } from "./templates";
+import { EXAMPLE_TICKET, parseTicket } from "./ticket-parser";
+
+describe("ADP signatures", () => {
+  test("Angie Mori is selectable and signs WhatsApp A.M", () => {
+    expect(ADP_OPTIONS).toContain("Angie Mori");
+    expect(adpSignature("Angie Mori")).toBe("A.M");
+  });
+  test("SGA uses Angie Mori's full name", () => {
+    const tpl = SGA_TEMPLATES.find(t => t.id === "confirma-visita");
+    if (!tpl) throw new Error("Missing confirmation template");
+    expect(renderTemplate(tpl, { ADP: "Angie Mori" })).toContain("REALIZADO POR: Angie Mori");
+  });
+});
+
+test("Los 5 rechazos interpolates the SOT and active WhatsApp signature", () => {
+  const tpl = WSP_TEMPLATES.find(t => t.id === "los-5-rechazos");
+  if (!tpl) throw new Error("Missing coverage rejection template");
+  const result = renderWsp(tpl, { SOT: "91835706", FIRMA: adpSignature("Angie Mori") });
+  expect(result).toContain("SOT:91835706 fue rechazada");
+  expect(result.endsWith("A.M")).toBe(true);
+});
+
+test("Habilitación uses the same TOA plano as Fuera de TOA", () => {
+  const ticket = parseTicket(EXAMPLE_TICKET);
+  expect(ticket.plano).toBe("0TCNA016-S");
+  for (const id of ["habilitacion-franjas", "fuera-toa"]) {
+    const tpl = SGA_TEMPLATES.find(t => t.id === id);
+    if (!tpl) throw new Error(`Missing template ${id}`);
+    expect(renderTemplate(tpl, { PLANO: ticket.plano })).toContain("🪚 PLANO: 0TCNA016-S");
+    expect(renderTemplate(tpl, {})).toContain("🪚 PLANO: \n");
+  }
+});
+
+describe("Supported visit slots", () => {
+  for (const [value, label, start, end] of [
+    ["AM0", "AM0 · 07:00 – 09:00", "07:00", "08:59"],
+    ["AM1", "AM1 · 09:00 – 13:00", "09:00", "12:59"],
+    ["PM1", "PM1 · 14:00 – 18:00", "14:00", "17:59"],
+    ["PM3", "PM3 · 18:00 – 20:00", "18:00", "19:59"],
+  ]) {
+    test(`${value} covers the requested time interval`, () => {
+      expect(FRANJAS_INFO.find(f => f.value === value)?.label).toBe(label);
+      expect(parseTicket(`Franja: ${value}`).franja).toBe(value);
+      expect(parseTicket(`Hora: ${start}`).franja).toBe(value);
+      expect(parseTicket(`Hora: ${end}`).franja).toBe(value);
+    });
+  }
+  test("Only the four requested slots are available", () => {
+    expect(FRANJAS_INFO.map(f => f.value)).toEqual(["AM0", "AM1", "PM1", "PM3"]);
+    for (const hour of ["06:59", "13:00", "20:00"]) expect(parseTicket(`Hora: ${hour}`).franja).toBe("");
+  });
+});
