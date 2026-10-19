@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep operational rules in browser-safe library modules and verify them with colocated Bun tests; ticket parsing and template interpolation must remain local and independently testable.
