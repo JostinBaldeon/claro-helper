@@ -39,7 +39,7 @@ describe("Supported visit slots", () => {
     ["AM1", "AM1 · 09:00 – 13:00", "09:00", "12:59"],
     ["PM1", "PM1 · 14:00 – 18:00", "14:00", "17:59"],
     ["PM3", "PM3 · 18:00 – 20:00", "18:00", "19:59"],
-  ]) {
+  ] as const) {
     test(`${value} covers the requested time interval`, () => {
       expect(FRANJAS_INFO.find(f => f.value === value)?.label).toBe(label);
       expect(parseTicket(`Franja: ${value}`).franja).toBe(value);
