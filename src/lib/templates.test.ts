@@ -3,6 +3,20 @@ import { ADP_OPTIONS, FRANJAS_INFO, SGA_TEMPLATES, WSP_TEMPLATES, adpSignature, 
 import { EXAMPLE_TICKET, parseTicket } from "./ticket-parser";
 
 describe("ADP signatures", () => {
+  for (const [name, signature] of [
+    ["Jesus Cerna", "I.C"], ["Jeferson Bautista", "J.B"],
+    ["Angelo Palomino", "A.P"], ["Antony Bernaloa", "A.B"], ["Paul Carrasco", "P.C"],
+  ]) {
+    test(`${name} uses the requested SGA and WhatsApp signatures`, () => {
+      expect(ADP_OPTIONS).toContain(name);
+      expect(adpSignature(name)).toBe(signature);
+      const sga = SGA_TEMPLATES.find(t => t.id === "confirma-visita");
+      const wsp = WSP_TEMPLATES.find(t => t.id === "ruta");
+      if (!sga || !wsp) throw new Error("Missing templates");
+      expect(renderTemplate(sga, { ADP: name })).toContain(`REALIZADO POR: ${name}`);
+      expect(renderWsp(wsp, { FIRMA: adpSignature(name) }).endsWith(signature)).toBe(true);
+    });
+  }
   test("Angie Mori is selectable and signs WhatsApp A.M", () => {
     expect(ADP_OPTIONS).toContain("Angie Mori");
     expect(adpSignature("Angie Mori")).toBe("A.M");
