@@ -58,7 +58,6 @@ import {
   type CaseType,
   type Franja,
   type ParsedTicket,
-  type Priority,
 } from "@/lib/ticket-parser";
 import {
   ADP_OPTIONS,
@@ -73,7 +72,7 @@ import {
   type TemplateCategory,
   type WspTemplate,
 } from "@/lib/templates";
-import { exportCsv, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
+import { exportCsv, filterHistory, localDateKey, personalMetrics, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -92,14 +91,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Dashboard,
 });
-
-const PRIORITY_STYLE: Record<Priority, string> = {
-  "Crítica": "bg-critical text-critical-foreground",
-  "Alta": "bg-warn text-warn-foreground",
-  "Media/Alta": "bg-info text-info-foreground",
-  "Media": "bg-muted text-muted-foreground",
-  "Baja": "bg-muted text-muted-foreground",
-};
 
 const CASE_DOT: Record<CaseType, string> = {
   INCUMPLIMIENTO: "bg-warn",
@@ -132,7 +123,6 @@ function emptyTicket(): ParsedTicket {
     direccion: "",
     plano: "",
     caso: "GENERAL",
-    prioridad: "Media",
     accionSugerida: "",
   };
 }
@@ -237,7 +227,22 @@ function Dashboard() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [query, setQuery] = useState("");
   const [filtroCaso, setFiltroCaso] = useState<string>("ALL");
-  const [filtroPrio, setFiltroPrio] = useState<string>("ALL");
+  const [today, setToday] = useState("");
+  const [filtroFecha, setFiltroFecha] = useState("");
+  const [filtroAdp, setFiltroAdp] = useState("SELF");
+  const [filtroEstado, setFiltroEstado] = useState("ALL");
+  useEffect(() => {
+    const update = () => {
+      const day = localDateKey();
+      setToday(previous => {
+        if (previous !== day) setFiltroFecha(current => !current || current === previous ? day : current);
+        return day;
+      });
+    };
+    update();
+    const timer = window.setInterval(update, 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setHistory(loadHistory());
@@ -325,10 +330,11 @@ function Dashboard() {
       fecha: new Date().toISOString(),
       sot: ticket.sot || "S/N",
       caso: ticket.caso,
-      prioridad: ticket.prioridad,
       estado: `${currentTpl.label}${submotivo ? ` · ${submotivo}` : ""}`,
       respuesta,
       cliente: ticket.cliente,
+      adp,
+      templateId: currentTpl.id,
     };
     const next = [entry, ...history];
     setHistory(next);
@@ -342,43 +348,26 @@ function Dashboard() {
     saveHistory(next);
   };
 
+  const metrics = useMemo(() => personalMetrics(history, adp, today), [history, adp, today]);
+  const filteredHistory = useMemo(() => filterHistory(history, {
+    date: filtroFecha, adp: filtroAdp === "SELF" ? adp : filtroAdp,
+    query, caso: filtroCaso, estado: filtroEstado,
+  }), [history, filtroFecha, filtroAdp, adp, query, filtroCaso, filtroEstado]);
+  const historyAdps = [...new Set(history.map(h => h.adp).filter((name): name is string => Boolean(name)))];
+  const historyStates = [...new Set(history.map(h => h.estado).filter(Boolean))];
+  const resetFilters = () => {
+    setFiltroFecha(today); setFiltroAdp("SELF"); setFiltroCaso("ALL"); setFiltroEstado("ALL"); setQuery("");
+  };
   const handleExport = () => {
-    if (!history.length) {
-      toast.error("Historial vacío");
-      return;
-    }
-    const csv = exportCsv(history);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    if (!filteredHistory.length) { toast.error("Sin registros para estos filtros"); return; }
+    const blob = new Blob(["\uFEFF" + exportCsv(filteredHistory)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `historial_helpdesk_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `historial_helpdesk_${filtroFecha}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  const metrics = useMemo(() => {
-    const today = new Date().toDateString();
-    const todays = history.filter((h) => new Date(h.fecha).toDateString() === today);
-    const count = (c: CaseType) => history.filter((h) => h.caso === c).length;
-    return {
-      hoy: todays.length,
-      incumplimientos: count("INCUMPLIMIENTO"),
-      adelantos: count("ADELANTAR_VISITA"),
-      reprogramaciones: count("COORDINACION"),
-      rescates: count("RESCATE_COMERCIAL"),
-      ahorro: history.length * 2,
-    };
-  }, [history]);
-
-  const filteredHistory = useMemo(() => {
-    return history.filter((h) => {
-      if (query && !h.sot.toLowerCase().includes(query.toLowerCase())) return false;
-      if (filtroCaso !== "ALL" && h.caso !== filtroCaso) return false;
-      if (filtroPrio !== "ALL" && h.prioridad !== filtroPrio) return false;
-      return true;
-    });
-  }, [history, query, filtroCaso, filtroPrio]);
 
   return (
     <div className="min-h-screen bg-surface">
@@ -449,14 +438,20 @@ function Dashboard() {
           </AlertDescription>
         </Alert>
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <MetricCard label="Tickets hoy" value={metrics.hoy} />
-          <MetricCard label="Incumplimientos" value={metrics.incumplimientos} tone="warn" />
-          <MetricCard label="Adelantos urgentes" value={metrics.adelantos} tone="critical" />
-          <MetricCard label="Reprogramaciones" value={metrics.reprogramaciones} tone="info" />
-          <MetricCard label="Rescates" value={metrics.rescates} tone="rescue" />
-          <MetricCard label="Min. ahorrados (est.)" value={metrics.ahorro} tone="success" />
-        </div>
+        <section aria-label="Mi atención de hoy" className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Mi atención de hoy · {adp}</h2>
+            <p className="text-xs text-muted-foreground">{metrics.difference > 0 ? "+" : ""}{metrics.difference} gestiones frente a ayer · Último registro: {metrics.last ? new Date(metrics.last).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <MetricCard label="Gestiones guardadas" value={metrics.total} />
+            <MetricCard label="SOT atendidas" value={metrics.unique} tone="info" />
+            <MetricCard label="Visitas confirmadas" value={metrics.confirmations} tone="success" />
+            <MetricCard label="Rechazos registrados" value={metrics.rejections} tone="warn" />
+            <MetricCard label="Ciclos de llamadas" value={metrics.calls} tone="info" />
+            <MetricCard label="Rescates comerciales" value={metrics.rescues} tone="rescue" />
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           {/* Panel izquierdo */}
@@ -698,23 +693,23 @@ function Dashboard() {
             <CardTitle className="flex items-center gap-2 text-base">
               <History className="h-4 w-4" /> Historial de atención
               <span className="text-xs font-normal text-muted-foreground">
-                ({history.length})
+                ({filteredHistory.length})
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-4">
+            <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-3 xl:grid-cols-4">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar por SOT"
+                  placeholder="Buscar SOT, cliente o estado"
                   className="h-9 pl-7 text-sm"
                 />
               </div>
               <Select value={filtroCaso} onValueChange={setFiltroCaso}>
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger aria-label="Filtrar caso" className="h-9 text-sm">
                   <SelectValue placeholder="Filtrar caso" />
                 </SelectTrigger>
                 <SelectContent>
@@ -724,18 +719,24 @@ function Dashboard() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filtroPrio} onValueChange={setFiltroPrio}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Prioridad" />
-                </SelectTrigger>
+              <Input type="date" aria-label="Fecha del historial" value={filtroFecha} onChange={e => setFiltroFecha(e.target.value || today)} className="h-9 text-sm" />
+              <Select value={filtroAdp} onValueChange={setFiltroAdp}>
+                <SelectTrigger aria-label="Filtrar asesor" className="h-9 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Todas las prioridades</SelectItem>
-                  <SelectItem value="Crítica">Crítica</SelectItem>
-                  <SelectItem value="Alta">Alta</SelectItem>
-                  <SelectItem value="Media/Alta">Media/Alta</SelectItem>
-                  <SelectItem value="Media">Media</SelectItem>
+                  <SelectItem value="SELF">Mis gestiones</SelectItem>
+                  <SelectItem value="ALL">Todos los asesores</SelectItem>
+                  <SelectItem value="UNKNOWN">Sin asesor registrado</SelectItem>
+                  {historyAdps.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                <SelectTrigger aria-label="Filtrar estado" className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos los estados</SelectItem>
+                  {historyStates.map(state => <SelectItem key={state} value={state}>{state}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={resetFilters}><RefreshCcw className="mr-2 h-4 w-4" /> Hoy · Mis gestiones</Button>
               <Button variant="outline" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" /> Exportar CSV
               </Button>
@@ -748,7 +749,7 @@ function Dashboard() {
                     <TableHead className="w-[150px]">Fecha</TableHead>
                     <TableHead>SOT</TableHead>
                     <TableHead>Caso</TableHead>
-                    <TableHead>Prioridad</TableHead>
+                    <TableHead>Asesor</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -757,7 +758,7 @@ function Dashboard() {
                   {filteredHistory.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                        Sin registros guardados.
+                        Sin registros para la fecha y los filtros seleccionados.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -777,7 +778,7 @@ function Dashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={PRIORITY_STYLE[h.prioridad]}>{h.prioridad}</Badge>
+                          <span className="text-xs">{h.adp || "Sin asesor registrado"}</span>
                         </TableCell>
                         <TableCell className="max-w-[280px] truncate text-xs text-muted-foreground">
                           {h.estado || "—"}
