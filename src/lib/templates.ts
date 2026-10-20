@@ -28,6 +28,11 @@ export const ADP_OPTIONS = [
   "Angel Potesta",
   "Edwin Zorrilla",
   "Angie Mori",
+  "Jesus Cerna",
+  "Jeferson Bautista",
+  "Angelo Palomino",
+  "Antony Bernaloa",
+  "Paul Carrasco",
   "Otro",
 ] as const;
 
@@ -39,6 +44,11 @@ export function adpSignature(adp: string): string {
   if (adp === "Angel Potesta") return "D.P";
   if (adp === "Edwin Zorrilla") return "E.Z";
   if (adp === "Angie Mori") return "A.M";
+  if (adp === "Jesus Cerna") return "I.C";
+  if (adp === "Jeferson Bautista") return "J.B";
+  if (adp === "Angelo Palomino") return "A.P";
+  if (adp === "Antony Bernaloa") return "A.B";
+  if (adp === "Paul Carrasco") return "P.C";
   return "J.L";
 }
 
