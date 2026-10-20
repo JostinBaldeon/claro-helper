@@ -9,8 +9,6 @@ export type CaseType =
   | "RESCATE_COMERCIAL"
   | "GENERAL";
 
-export type Priority = "Crítica" | "Alta" | "Media/Alta" | "Media" | "Baja";
-
 export type Franja = "AM0" | "AM1" | "PM1" | "PM3" | "";
 
 export interface ParsedTicket {
@@ -32,7 +30,6 @@ export interface ParsedTicket {
   direccion: string;
   plano: string;
   caso: CaseType;
-  prioridad: Priority;
   accionSugerida: string;
 }
 
@@ -70,7 +67,7 @@ const normalize = (s: string) => s.toLowerCase();
 
 function findCase(text: string): CaseType {
   const t = normalize(text);
-  // Orden de prioridad: ADELANTAR pisa MANTENER si hay urgencia
+  // ADELANTAR se detecta antes que MANTENER si hay urgencia
   const order: Exclude<CaseType, "GENERAL">[] = [
     "ADELANTAR_VISITA",
     "INCUMPLIMIENTO",
@@ -82,18 +79,6 @@ function findCase(text: string): CaseType {
     if (CASE_KEYWORDS[c].some((k) => t.includes(k))) return c;
   }
   return "GENERAL";
-}
-
-function getPriority(caso: CaseType, text: string): Priority {
-  const t = normalize(text);
-  if (caso === "ADELANTAR_VISITA" && t.includes("urgente")) return "Crítica";
-  if (caso === "INCUMPLIMIENTO") return "Alta";
-  if (caso === "RESCATE_COMERCIAL") return "Alta";
-  if (t.includes("cliente critico") || t.includes("cliente crítico")) return "Alta";
-  if (caso === "MANTENER_FRANJA") return "Media/Alta";
-  if (caso === "COORDINACION") return "Media";
-  if (caso === "ADELANTAR_VISITA") return "Alta";
-  return "Media";
 }
 
 function detectFranja(text: string): Franja {
@@ -204,7 +189,6 @@ function parseToa(text: string): ParsedTicket {
     direccion: toaValue(L, "Direccion"),
     plano: toaValue(L, "Plano"),
     caso,
-    prioridad: getPriority(caso, notas),
     accionSugerida: "",
   };
 }
@@ -233,7 +217,6 @@ export function parseTicket(text: string): ParsedTicket {
   const observacion = extractAfter(text, ["OBSERVACION", "OBSERVACIÓN", "OBS"]);
   const franja = detectFranja(text);
   const caso = findCase(text);
-  const prioridad = getPriority(caso, text);
 
   const accionSugerida = (() => {
     switch (caso) {
@@ -271,7 +254,6 @@ export function parseTicket(text: string): ParsedTicket {
     direccion: extractAfter(text, ["DIRECCION", "DIRECCIÓN"]),
     plano: extractAfter(text, ["PLANO"]),
     caso,
-    prioridad,
     accionSugerida,
   };
 }
@@ -571,8 +553,6 @@ Puerta a Puerta
 Mantenimiento 30 Días
 
 Sin Servicio - IN HOUSE
-
-Retención Prioridad
 
 Requiere Escalera
 
