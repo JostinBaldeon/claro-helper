@@ -409,8 +409,9 @@ function Dashboard() {
           <div className="flex items-center gap-2">
             <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
               <SelectTrigger className="h-9 w-[150px]" title="Tema">
-                <Palette className="mr-1 h-4 w-4" />
-                <SelectValue placeholder="Tema" />
+                <Palette className="h-4 w-4 shrink-0" />
+                <SelectValue className="sr-only" />
+                <span className="truncate">Tema</span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="light">☀️ Modo claro</SelectItem>
