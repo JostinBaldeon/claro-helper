@@ -15,8 +15,8 @@ import {
   Sparkles,
   Trash2,
   User,
-  Moon,
-  Sun,
+  ExternalLink,
+  Palette,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -163,20 +163,29 @@ function tplVars(t: ParsedTicket, adp: string, submotivo: string) {
   };
 }
 
-type Theme = "light" | "dark" | "halloween";
+type Theme = "light" | "dark" | "halloween" | "navidad";
 const THEME_KEY = "helpdesk_claro_theme_v1";
+
+const QUICK_LINKS = [
+  { label: "148", url: "https://claro360.com/plataforma360/Peru/soporte_remoto" },
+  { label: "TOA", url: "https://amx-peru.fs.ocs.oraclecloud.com/" },
+  { label: "INCOGNITO", url: "http://172.17.51.6/sac/Login_input" },
+  { label: "AICC", url: "https://10.189.8.188:28090/service-cloud/aicc-web/index/index.html#/ManualAppointWorkbenchDetails?taskId=1061244585&orgId=1752727161880235604&appointId=175435461525835224677465120200&eventType=AgentEvent_Customer_Release&updateCallId=1754354624-11840&isFirst=true&AgentEvent_Call_Out_Fail=true" },
+  { label: "GEODIR", url: "https://maps.geodir.co/bravo-maps" },
+];
 
 function applyTheme(t: Theme) {
   const el = document.documentElement;
   el.classList.toggle("dark", t !== "light");
   el.classList.toggle("halloween", t === "halloween");
+  el.classList.toggle("navidad", t === "navidad");
 }
 
 function Dashboard() {
   const [theme, setTheme] = useState<Theme>("light");
   useEffect(() => {
     const saved = window.localStorage.getItem(THEME_KEY) as Theme | null;
-    if (saved === "dark" || saved === "halloween" || saved === "light") setTheme(saved);
+    if (saved === "dark" || saved === "halloween" || saved === "light" || saved === "navidad") setTheme(saved);
   }, []);
   useEffect(() => {
     applyTheme(theme);
@@ -387,28 +396,29 @@ function Dashboard() {
                 Instalaciones · Panel local de apoyo operativo
               </p>
             </div>
+            <div className="ml-2 flex flex-wrap items-center gap-2">
+              {QUICK_LINKS.map((l) => (
+                <Button key={l.label} variant="outline" size="sm" asChild>
+                  <a href={l.url} target="_blank" rel="noopener noreferrer" title={l.url}>
+                    <ExternalLink className="mr-1 h-3.5 w-3.5" /> {l.label}
+                  </a>
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1">
-              <span className="h-2 w-2 rounded-full bg-success" /> Sin backend
-            </Badge>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              title="Cambiar tema claro / oscuro"
-            >
-              {theme === "light" ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
-              {theme === "light" ? "Oscuro" : "Claro"}
-            </Button>
-            <Button
-              variant={theme === "halloween" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTheme(theme === "halloween" ? "dark" : "halloween")}
-              title="Tema Halloween"
-            >
-              🎃 Halloween
-            </Button>
+            <Select value={theme} onValueChange={(v) => setTheme(v as Theme)}>
+              <SelectTrigger className="h-9 w-[150px]" title="Tema">
+                <Palette className="mr-1 h-4 w-4" />
+                <SelectValue placeholder="Tema" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">☀️ Modo claro</SelectItem>
+                <SelectItem value="dark">🌙 Modo oscuro</SelectItem>
+                <SelectItem value="halloween">🎃 Modo Halloween</SelectItem>
+                <SelectItem value="navidad">🎄 Modo Navidad</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               size="sm"

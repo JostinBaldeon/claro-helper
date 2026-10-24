@@ -366,7 +366,7 @@ export interface WspTemplate {
 export const WSP_TEMPLATES: WspTemplate[] = [
   {
     id: "los-5-rechazos",
-    label: "Los 5 rechazos",
+    label: "❌ los 5 rechazos",
     body: `Buen día,  @
 
 SOT:{SOT} fue rechazada por la mesa de cobertura de instalaciones, Geodir. Por favor derivar al buzón de Análisis rechazó por cobertura Red HFC.
@@ -391,7 +391,7 @@ Recordar por favor llenar esta plantilla al momento del envió del correo.
 {FIRMA}`,
   },
   { id: "ruta", label: "🚗 Técnico en ruta", body: "@ 🚗Estimado SOT: {SOT}. Técnico en ruta a la dirección. {FIRMA}" },
-  { id: "no-contesta", label: "📵 Cliente no contesta", body: "@ 📵Estimado SOT: {SOT}. Se llamó a cliente y no contesta. {FIRMA}" },
+  { id: "no-contesta", label: "📵 Cliente no contesta", body: "@ 📵 Estimado. SOT:{SOT} ,nos comunicamos con el cliente para coordinar la visita; sin embargo, no obtuvimos respuesta del cliente. Agradeceremos nos indiquen en qué horario podemos volver a contactarlo. {FIRMA}" },
   { id: "confirma-visita", label: "✅ Cliente confirma visita", body: "@ ✅Estimado SOT: {SOT}. Cliente confirma Visita - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
   { id: "en-atencion", label: "⏳ En proceso de atención", body: "@ ⏳ Estimado SOT: {SOT}. Cliente en proceso Atención. {FIRMA}" },
   { id: "rechazado", label: "❌ Cliente rechazado", body: "@ ❌ Estimado SOT: {SOT}. Cliente Rechazado – {SUBMOTIVO} {FIRMA}", needsSubmotivo: true },
@@ -403,7 +403,6 @@ Recordar por favor llenar esta plantilla al momento del envió del correo.
   { id: "cobertura", label: "⏳ Plantilla de cobertura solicitada", body: "@⏳Estimado SOT: {SOT}, cliente en proceso Atención {FIRMA}." },
   { id: "escala-sup", label: "⏫ Escalado con supervisor", body: "@ Estimado, la SOT : {SOT} se encuentra en revisión para el requerimiento solicitado . Estamos solicitando priorizar su atención. En breve le compartiremos una actualización del estado. {FIRMA}" },
   { id: "sin-franja", label: "🟡 Sin franja disponible", body: "@ Estimado SOT: {SOT}, se mantiene la fecha, no hay disponibilidad de franja. {FIRMA}" },
-  { id: "3-intentos", label: "📵 3 intentos AICC", body: "@ Estimado SOT: {SOT}, cliente no contesta. Se realizó 3 intentos de llamada desde plataforma AICC. {FIRMA}" },
   { id: "adelanto-ok", label: "✅ Procede adelanto", body: "@ Estimado SOT: {SOT}. Procede adelanto, nueva fecha - {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
   { id: "mantiene-franja", label: "✅ Mantiene franja - enrutada", body: "@ Estimado SOT: {SOT}. Se mantiene la franja, SOT enrutada. {FIRMA}" },
   { id: "reprog", label: "🔁 Reprogramó visita", body: "@ Estimado SOT: {SOT}. Se llamó al cliente y se reprogramó la visita {SUBMOTIVO}. {FIRMA}", needsSubmotivo: true },
@@ -416,7 +415,7 @@ Recordar por favor llenar esta plantilla al momento del envió del correo.
   { id: "planta-externa", label: "⏳ Derivado a planta externa", body: "@ Estimado SOT: {SOT}. ⏳ Cliente en proceso Atención - se encuentra en estado Derivado Planta Externa, por lo tanto, estaremos a la espera de la confirmación del área correspondiente para derivar a campo. {FIRMA}" },
   { id: "contratista", label: "🛠️ Escalado a contratista", body: "@ Estimado SOT: {SOT}. Caso escalado a la contratista. 🛠️ En Hitss quedamos a cargo del monitoreo para asegurar su cumplimiento. {FIRMA}" },
   { id: "mesa-depto", label: "⏳ Escalado a mesa del departamento", body: "@ Estimado SOT: {SOT}. ⏳ Cliente en proceso Atención - Se escaló caso a la mesa del departamento. {FIRMA}" },
-  { id: "equipos", label: "📦 En espera de equipos", body: "@ Estimado SOT: {SOT}. Nos encontramos en espera de equipos, por favor volver a reenviar su plantilla por la tarde, está por confirmarnos el stock de equipos. {FIRMA}" },
+  { id: "equipos", label: "📦 En espera de equipos", body: "@ Estimado. SOT: {SOT} ,se encuentra EN ESPERA DE EQUIPOS, se consultará a la contrata cuando se tendrá el stock y según lo indicado se coordinará la visita con el titular para efectuar la instalación. {FIRMA}" },
   { id: "accesorios", label: "🛠️ Escalado contratista - accesorios", body: "@ Estimado SOT: {SOT}. Caso escalado a la contratista. 🛠️ En Hitss quedamos a cargo del monitoreo para asegurar su cumplimiento para los casos de accesorios adicionales. {FIRMA}" },
   { id: "cuota-completa", label: "📅 Mantiene fecha - cuota completa", body: "@ SOT: {SOT}. Estimado, por el momento se mantiene fecha de agendamiento según a disposición del SGA. Se verifica que la cuota asignada hasta la fecha se encuentra completa. En caso de tener caídas se priorizará el adelanto de visita. {FIRMA}" },
   { id: "seguimiento-instalado", label: "👀 Seguimiento - Cliente instalado", body: "@ Estimado SOT: {SOT}. Realizando seguimiento a la SOT, se verifica que cliente instalado. {FIRMA}" },
