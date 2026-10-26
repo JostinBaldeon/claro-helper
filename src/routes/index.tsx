@@ -73,6 +73,7 @@ import {
   type WspTemplate,
 } from "@/lib/templates";
 import { exportCsv, filterHistory, localDateKey, personalMetrics, loadHistory, saveHistory, type HistoryEntry } from "@/lib/history";
+import { SeasonalWidget } from "@/components/seasonal-widget";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -816,6 +817,8 @@ function Dashboard() {
           Herramienta interna de apoyo · ADP activo: <span className="font-medium">{adp}</span>
         </p>
       </div>
+
+      <SeasonalWidget theme={theme} />
     </div>
   );
 }

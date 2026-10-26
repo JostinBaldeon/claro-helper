@@ -21,6 +21,13 @@ describe("ADP signatures", () => {
     expect(ADP_OPTIONS).toContain("Angie Mori");
     expect(adpSignature("Angie Mori")).toBe("A.M");
   });
+  test("Xiavier Capa is selectable and signs WhatsApp X.C", () => {
+    expect(ADP_OPTIONS).toContain("Xiavier Capa");
+    expect(adpSignature("Xiavier Capa")).toBe("X.C");
+    const sga = SGA_TEMPLATES.find(t => t.id === "confirma-visita");
+    if (!sga) throw new Error("Missing confirmation template");
+    expect(renderTemplate(sga, { ADP: "Xiavier Capa" })).toContain("REALIZADO POR: Xiavier Capa");
+  });
   test("SGA uses Angie Mori's full name", () => {
     const tpl = SGA_TEMPLATES.find(t => t.id === "confirma-visita");
     if (!tpl) throw new Error("Missing confirmation template");
